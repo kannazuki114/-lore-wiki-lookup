@@ -1,189 +1,191 @@
-# Gemini Web Bridge · 酒馆前端扩展与本机后端
+# 人物与剧情 Wiki 查询 v0.3.0
 
-让 SillyTavern / TauriTavern 通过浏览器、Gemini 网页应用窗口或支持 CDP 的桌面客户端生成回复。
+SillyTavern / TauriTavern 字段检索扩展。默认来源为萌娘百科，支持自由添加 MediaWiki 站点；联网为主、本地 JSON 资料包补充。参考游戏王查卡器的工具注册、命令和单文件打包方式，使用独立数据库、DOM 前缀和提示词键。
 
-从 **1.2.0** 起，项目同时包含可由扩展管理器识别的前端扩展和实际控制浏览器的本机后端：
+## 0.3 自动查询、资料整理和编辑
 
-| 入口 | 加载位置 | 功能 |
-| --- | --- | --- |
-| `manifest.json` → `index.js` + `style.css` | 酒馆的前端扩展目录 | 设置面板、连接与模型检测、应用 API 配置 |
-| `package.json` → `index.mjs` | SillyTavern 的 `plugins/` | 随酒馆启动和退出的 Node 后端 |
-| `server.mjs` | 单独运行，适合 TauriTavern | 提供同一套本机桥接 API |
+### 自动查询
 
-参考插件“游戏王查卡器 v2”使用第一种结构。此前版本只提供后端入口，无法在前端扩展面板按 manifest 加载；现已补齐完整前端。
+展开“自动查询与副模型整理”，勾选“生成回复前自动查询资料”，设置关注词、返回字段及预算，点击“保存自动设置”。默认关闭；开启后使用当前聊天绑定的作品和 Wiki。
 
-## 安装前端扩展
+- 从最近玩家消息识别本地条目名称、别名、已学 Wiki 别名、当前聊天角色名及关注词；也识别 `查人物／查设定／查剧情／查资料 名称`。可选识别「括号中的未知名称」。这是字面匹配，不是模型对任意自然语言的实体识别。
+- 默认每轮最多查 2 个名称，等候总计 8 秒，注入 4500 字符。可调到最多 3 个名称、20 秒、12000 字符；每个名称提取指定页面，不会递归搜索全站。
+- 通过 manifest 生成前拦截；支持 `GENERATION_AFTER_COMMANDS` 事件的客户端可走兜底。同一轮相同输入复用请求，跳过 quiet 和 impersonate。
+- 同名歧义、作品归属不明时不自动选择。超时继续主回复，切换聊天、停止或完成生成后清除注入，迟到结果不写回。
+- “检查本轮自动资料”对当前玩家消息执行同一流程；下方显示上次实际注入文本。没有酒馆上下文的独立预览不能自动注入。
 
-前端包为 `gemini-web-bridge-extension-1.2.0.zip`，完整包为 `gemini-web-bridge-1.2.0.zip`。
+自动注入按完整资料段落选择，默认不启用模型整理。原始资料不够明确、全部超出预算或没有命中时可不注入。
 
-1. 解压前端包。确认 `gemini-web-bridge` 文件夹内直接包含 `manifest.json`、`index.js`、`settings.html` 和 `style.css`。
-2. TauriTavern 使用其本地扩展安装方式或扩展目录；SillyTavern 放到 `data/<用户>/extensions/gemini-web-bridge/`，或全局目录 `public/scripts/extensions/third-party/gemini-web-bridge/`。
-3. 刷新酒馆，在扩展设置中找到 **“Gemini 网页桥接”**。支持 ZIP 安装的宿主也可以导入前端包；SillyTavern 原版安装 ZIP 时手动解压，仓库 URL 安装要求仓库根目录有 manifest。
-4. 先按下节启动后端，再点击“检测连接与模型”与“应用到 API 连接”。
+### 副模型整理
 
-前端是单文件经典脚本，也能以模块方式加载；静态面板模板已嵌入产物，文件夹或仓库改名后无需修改资源路径。前端本身不需要 Node.js。
+查询后展开“整理查询结果”，可填整理重点，再点击“用副模型整理本批资料”。整理结果与原始结果同时保留，需要时点击“将整理用于下一轮”。
 
-详细步骤见 [INSTALL.md](INSTALL.md)，结构符合 [SillyTavern 前端扩展规范](https://docs.sillytavern.app/for-contributors/writing-extensions/)。
+默认使用独立副模型桥接。启动桥接前在其终端设置：
 
-## 启动本机后端
+```powershell
+# 填你的兼容 Chat Completions 接口地址，可使用本地模型服务
+$env:LORE_AI_BASE_URL = Read-Host '模型接口根地址（例如 https://你的服务/v1）'
+$env:LORE_AI_MODEL = Read-Host '副模型名称'
+$summaryPassword = Read-Host '副模型 API Key（本地免密服务可直接回车）' -AsSecureString
+$env:LORE_AI_KEY = [System.Net.NetworkCredential]::new('', $summaryPassword).Password
+node tools/bridge.mjs
+```
 
-要求：**运行后端的 Node.js 为 22+**。SillyTavern 服务端插件使用酒馆的 Node.js；TauriTavern 使用单独的 Node.js 运行后端。浏览器或 Gemini 桌面客户端与后端在同一台机器上。后端运行时没有第三方 npm 依赖。
+模型地址、名称和密钥只在服务端配置。插件沿用“连接与离线资料”的桥接地址及内存配对令牌。模型接口使用非流式 `messages` 请求，需支持 `choices[0].message.content` 返回文本；未配置模型时查询仍可正常使用。
 
-TauriTavern：将完整包解压到本机可读写位置，运行 `start-gemini.bat` 登录 Gemini，再运行 `start-bridge-gemini.bat`，保持后端窗口开启。前端可继续连接已有的 1.1.0 后端。
+模型须返回 JSON，每条概括引用本次资料中的原文短句。插件校验来源编号与短句是否存在；无法核对、截断、格式错误或超时时拒绝整理结果，保留原始资料。**短句存在不等于模型概括一定正确**，仍应结合原文判断。整理结果不会自动写入人物资料库。
 
-SillyTavern 可采用上述方式，也可将后端作为服务端插件自动启动：
+也可选择“酒馆当前连接”，使用宿主 `generateRaw` 进行手动整理；它不是独立副模型。为避免生成中再次调用主连接，自动整理仅使用桥接通道。宿主原始生成不一定支持底层取消，超时后忽略其结果。
 
-1. 将完整包放入酒馆安装目录的 `plugins/gemini-web-bridge/`，目录内应直接包含 `package.json`、`index.mjs`、`config.json`、`lib/` 和 `backends/`。
-2. 修改**酒馆根目录**的 `config.yaml`：
+勾选“自动资料交给独立副模型整理”后，自动查询会在同一轮总等待预算内尝试整理；失败使用已取得的原文，整个总预算耗尽则不注入本轮资料。此选项默认关闭。
 
-   ```yaml
-   enableServerPlugins: true
-   ```
+### 导入和编辑
 
-3. 双击插件目录中的 **`start-gemini.bat`**。默认自动检测 Edge、Chrome、Brave 或 Chromium；首次需在打开的专用会话中登录 Google，确认 Gemini 可以正常对话，并保持窗口开启。旧的 `start-chrome-debug.bat` 也会转到通用启动器，不再强制 Chrome。
-4. 启动或重启酒馆。终端应出现：
+“资料导入与编辑”支持：
 
-   ```text
-   [gemini-web-bridge] 监听 http://127.0.0.1:8788
-   [gemini-web-bridge] 酒馆里填: 自定义地址 = http://127.0.0.1:8788/v1
-   ```
+- **TXT／Markdown**：按一、二级标题或 `【条目名】` 分条；字段标题及 `性格：…` 等标签识别为对应字段；其余文字保留为简介。代码围栏不解析为标题。可给导入文本指定作品归属。
+- **世界书 JSON**：SillyTavern 的 `entries` 对象、带 `keys` 的角色卡世界书数组、`data.character_book`。默认跳过停用条目，可勾选导入。只读入文字及关键词，不执行宏、正则、插入位置或激活规则；次级关键词保留为导入元数据，不当成人物别名。
+- **本插件 JSON**：继续支持 schemaVersion=1 资料包，与旧版兼容。
 
-后端随酒馆启动，退出时清理连接和请求；前端通过 manifest 单独加载，两个入口可以同时使用。服务端加载方式依照 [SillyTavern 官方文档](https://docs.sillytavern.app/for-contributors/server-plugins/)。同一个端口只运行一个后端实例。
+选择文件后先显示条目数、跳过数量、同 ID 更新数及内容样例，点击“确认导入”才写入。默认合并并更新同 ID；也可选择替换全部。TXT／MD 的 ID 按文件名、条目标题及同名序号生成，普通行号变化不改变条目 ID。
 
-## 选择浏览器或 Gemini 应用
+条目列表可新建、选中编辑标题／来源／任意字段、添加或移除字段、删除条目。多值用单独一行 `---` 分隔。保存立即更新本地检索；已打开的旧编辑版本会在保存冲突时要求刷新。
 
-| 使用方式 | 设置或入口 | 范围 |
-| --- | --- | --- |
-| 普通浏览器 | `start-gemini.bat`，`clientMode: "browser"` | 自动检测 Edge / Chrome / Brave / Chromium；也可用 `browserPath` 指定支持 CDP 的浏览器 |
-| Gemini 独立网页应用窗口 | `start-gemini-app.bat`，`clientMode: "app"` | 使用浏览器的 app 窗口显示 Gemini，不需要浏览器标签栏 |
-| 已安装的 Gemini PWA | 用调试方式启动承载它的浏览器，再连接其 CDP 端点 | PWA 必须属于开放调试端点的浏览器会话，不能直接接管未开放调试的普通窗口 |
-| Windows Gemini 桌面客户端 | 配好 `appPath` 后用 `start-gemini-desktop.bat` | 支持开放 Gemini 渲染页面 CDP 的 Electron / WebView2 客户端；不保证所有第三方客户端兼容 |
-| 已有应用调试接口 | `clientMode: "attach"`，设置 `cdpEndpoint` | HTTP 页面发现端点或具体页面的 WebSocket 地址 |
+每次导入、保存或删除前自动保留一份上次资料库，可“恢复上次修改前的资料库”。仍可导出完整 JSON 做长期备份。当前最多 3000 条、单文件 10 MB；这不是小说语义索引或章节级防剧透系统。
 
-**桌面应用若是纯原生界面，或禁用了远程调试，不能仅凭应用名称连接。手机原生 App 不在支持范围内。Firefox / Safari 也不使用这里的 CDP 适配器，建议选 Edge 或其他受支持的 Chromium 浏览器。**
+## 0.2 新增功能与使用方式
 
-默认 `autoLaunch: true`：首次模型请求若发现调试端点未启动，会按配置尝试启动客户端。手动启动入口更适合首次登录。专用会话目录会保存登录，但不会自动复制普通浏览器的登录态。
+1. **真实页面适配**：以萌娘百科、THBWiki 的公开人物页面校准，支持萌百 MoeSkin 模板内正文、跨行关系信息栏、“事迹／角色能力／登场剧情”等章节；补充 PortableInfobox、定义列表与常见英文字段标签。保留章节及原文一设／二设限定；不把删除线玩笑文字当成正式字段值。
+2. **当前聊天作品绑定**：选择 Wiki 来源、填写“当前作品”，点击“绑定当前聊天”。绑定保存在该聊天 metadata，切换聊天自动恢复。命令和 AI 工具默认使用绑定；面板可临时改作品再查询。作品字段、分类或明确标题前缀能支持归属时才直接采用，否则显示待确认条目。
+3. **别名和同名消歧**：在“当前作品的别名映射”中按 `别名=完整标题` 保存；支持同别名对应多条映射。页面已识别出的别名会被记住，按来源隔离。多义别名、Wiki 消歧义页面、本地同名人物都展示候选，点击“选择此条目”后读取，不自动合并人物。
+4. **分类导航**：检索方式选择“搜索分类名称”，输入关键词；找到分类后可“查看页面成员”或“展开子分类”，支持下一批和返回上级。不自动全站递归。
+5. **自定义 Wiki**：展开“添加与管理 Wiki”，输入首页、条目网址或 API 网址，选择直连／桥接，点击“探测并测试”，再保存。可多站切换、更新同 API 站点或删除自定义站点。探测不到时可填写准确 API 地址并手动保存（标为未验证）。内置萌娘百科保持默认且不能删除。
 
-选择特定浏览器时修改 `config.json` 的 `browser` 为 `edge`、`chrome`、`brave`、`chromium` 或 `custom`。非标准安装位置请填写 `browserPath`。Gemini 应用窗口与浏览器模式使用同一浏览器的专用会话目录；已存在可用调试会话时，启动器优先复用它。需要切换窗口形式时，先关闭该专用会话再重新启动。
+### 自定义站点示例
 
-桌面客户端配置示例，合并进现有 `config.json`：
+```text
+Wiki 网址：https://thwiki.cc/
+API 地址：https://thwiki.cc/api.php  （可留空自动探测）
+访问方式：浏览器直连；遇跨域限制改选本地桥接
+```
+
+本次已实际联网验证 THBWiki 的站点信息、搜索、分类搜索、页面、页面分类及分类成员六类接口。自定义站点的标题、来源链接、缓存、别名和分页均按站点隔离。
+
+支持范围是 **MediaWiki Action API**，不是所有名叫 Wiki 的网页。自动尝试 URL 所在目录、`/api.php`、`/w/api.php`、`/wiki/api.php`。其他路径请手动填 API；非 MediaWiki、反爬验证页或不开放读取的站点需另做适配，不能靠添加网址绕过访问限制。连接测试会区分“不是 API／不可访问”和“已识别站点但搜索受限”。
+
+浏览器直连受站点 CORS 和浏览器 HTTPS 混合内容策略限制。公共桥接支持 HTTPS 443、公网 IPv4，不转发浏览器 Cookie 或萌百凭据，不跟随重定向；请填最终 API 地址。自定义站点目前只支持匿名公开读取，其独立账号认证未实现。
+
+只使用公共 Wiki 桥接时可直接 `node tools/bridge.mjs`，无需萌百账号和上游构建；终端会显示配对令牌。萌娘百科的认证查询仍需按下文设置。绑定在独立预览中仅保留本页会话；在酒馆中随聊天保存。
+
+## 本版已实现
+
+- 23 个字段及中文别名：名称、别名、作品、版本、类型、性别、种族、阵营、身份、外貌、性格、能力、关系、经历、剧情、设定、篇章、地点、参与者、时间、简介、萌属性、分类。
+- 五种检索：关键词候选 + 字段核验；指定页面提取；分类直接页面成员；分类名称搜索；子分类浏览。
+- `=` 精确匹配、`~` 包含匹配，多个条件为 AND；缺失字段标为未知，不算条件命中。
+- 从 HTML 信息栏和有明确含义的章节提取字段，保留来源、修订号、时间及章节锚点。
+- 下一批候选游标、缓存、失败提示、离线 JSON 导入/导出、手动用于下一轮回复。
+- AI 工具 `search_lore_fields`；命令 `/lorefields`、`/lorepage`、`/lorecategory`、`/lorecategories`、`/loresubcategories`。宿主缺少工具接口时仍可使用面板。
+- 本地认证桥接；复用 AnnAngela 项目的认证客户端，使用本插件的统一只读协议，不在浏览器中保存萌百账号凭据。
+
+## 安装插件
+
+把本目录复制到酒馆用户数据下 `extensions/third-party/lore-wiki-lookup/`，刷新页面，在扩展设置中找到“人物与剧情查询”。宿主读取 `dist/index.js` 与 `style.css`，无需在酒馆端安装 npm 包。
+
+单文件产物已经生成。本地预览为 `preview.html`，通过本地静态 HTTP 服务打开可测试面板。预览没有实际酒馆上下文，无法注入聊天。
+
+## 联网后端：你提供的萌百 API 项目
+
+参考项目：<https://github.com/AnnAngela/moegirlpedia-mediawiki-api>（Apache-2.0）。本次核对版本 0.7.0，提交 `f4e54795741adcce931cf47fd8f3c4d5274f296b`。其官方 CLI 输出的是页面、分类等结构化结果，不直接提供性格／经历字段，我们在前端进行字段提取。
+
+实测（2026-10-15，本机）：`zh` 与 `mzh` 的匿名搜索均返回 `action-notallowed / Unauthorized API call`；站点信息和主模块帮助可读。**HTTP 200 不代表查询成功。** 因此默认采用需要 Bot Password 的本地桥接，接口地址为 `https://mzh.moegirl.org.cn/api.php`，来源链接指向 `https://zh.moegirl.org.cn/`。
+
+### 一次性准备
+
+需要 Node.js 24.11+。本工作目录的 `../references/moegirlpedia-mediawiki-api` 已下载，依赖已安装，`.runtime/upstream-adapter.mjs` 已构建；换电脑时按以下步骤准备：
+
+1. 下载上述项目，建议固定到本次验证的提交。
+2. 在该项目目录运行 `npm ci --ignore-scripts --no-audit --no-fund`。
+3. 回到本插件目录运行：
+
+```powershell
+node tools/prepare-upstream.mjs '萌百API项目源码的绝对路径'
+```
+
+准备脚本使用上游的 esbuild，直接生成持久会话适配器；不会执行其 Bash 构建／发布脚本，不修改上游源码。上游 Node 依赖与账号均位于服务端。
+
+### 启动桥接（PowerShell，在本插件目录）
+
+```powershell
+$env:MOEGIRLPEDIA_USERNAME = Read-Host '萌百 Bot Password 用户名，例如 用户名@应用名'
+$wikiPassword = Read-Host '萌百 Bot Password（不要用主密码）' -AsSecureString
+$env:MOEGIRLPEDIA_BOT_PASSWORD = [System.Net.NetworkCredential]::new('', $wikiPassword).Password
+$env:LORE_UPSTREAM_MODULE = Join-Path (Get-Location) '.runtime\upstream-adapter.mjs'
+# 如果酒馆不是这两个地址，填写实际来源，多个来源用英文逗号分隔
+$env:LORE_ALLOWED_ORIGINS = 'http://localhost:8000,http://127.0.0.1:8000'
+node tools/bridge.mjs
+```
+
+保持该终端运行。把启动时显示的**配对令牌**填入酒馆插件“连接与离线资料”，桥接地址默认为 `http://127.0.0.1:39765`，保存后查询。配对令牌只保留在前端内存；刷新需重填。可通过服务端环境变量 `LORE_BRIDGE_TOKEN` 设置固定令牌（至少 24 字符）。
+
+桥接只监听本机，只允许六类查询操作，验证浏览器来源和配对令牌，不向浏览器转发原始认证错误。萌百首次查询时登录，此后复用会话。自定义站点使用独立的匿名公共请求，不经过萌百登录客户端。当前默认不适用于手机连接另一台电脑的桥接服务；跨设备部署需要另行配置传输和认证。
+
+**尚未用真实账号完成登录后查询验证。** 当前环境没有用户提供的 Bot Password，不需要把它发到聊天里。测试使用假凭据及拦截响应。
+
+## 字段查询示例
+
+| 方式 | 输入 | 说明 |
+|---|---|---|
+| 按条件搜索 | `原神 阵营~西风骑士团` | Wiki 搜索候选，然后核对其阵营字段 |
+| 指定页面提取 | `博丽灵梦` | 勾选“性格、能力、经历”等返回字段 |
+| 分类直接成员 | `东方Project` | 枚举该分类的直接页面成员，不递归子分类 |
+| 离线演示 | `作品=星港纪事 阵营~调查队` | 导入 `data/example.json` 后可查 |
+| 含空格的值 | `作品="Star Port"` | 引号包住完整值 |
+
+命令示例：
+
+```text
+/lorefields fields=作品,性格 原神 阵营~西风骑士团
+/lorepage fields=性格,经历 博丽灵梦
+/lorecategory fields=名称,作品 东方Project
+/lorecategories 东方
+/loresubcategories 东方Project
+```
+
+工具调用参数示例：
 
 ```json
-{
-  "clientMode": "desktop",
-  "appPath": "C:\\Apps\\Gemini\\Gemini.exe",
-  "desktopEngine": "auto",
-  "autoLaunch": true,
-  "cdpPort": 9222
-}
+{"query":"原神 阵营~西风骑士团","mode":"search","fields":"作品,性格,关系","limit":5}
 ```
 
-`desktopEngine: "auto"` 会同时提供 Electron 调试启动参数和仅对子进程生效的 WebView2 环境变量；也可指定 `electron` 或 `webview2`。客户端需要完全退出后由启动器重开，已经运行的实例可能忽略新调试设置。插件只连接其中的真实 Gemini 网页/WebView，不会把文件形式的应用外壳导航成网页；新会话使用页面内的新对话按钮。
+工具与命令返回 JSON。`work` 可覆盖当前聊天的作品范围；工具 `resolveExact: true` 仅用于明确选中的消歧候选，本地同名候选同时传回 `entryId`。继续查询时原样传回 `cursor`，保持来源、作品和其余参数不变。每批最多读取 8 个 Wiki 候选，并补充最多同样数量的本地条目。候选不满足字段条件时可能返回空批次，但仍有下一批。
 
-应用自行管理启动参数时，设置 `clientMode: "attach"` 和 `autoLaunch: false`，填写例如 `cdpEndpoint: "http://127.0.0.1:9333"`，也可以填写 `ws://127.0.0.1:9333/devtools/page/实际ID`。只有 browser/app 模式允许自动新建浏览器页面。若端点包含多个 Gemini 页面，可用 `targetId` 精确选择。
+## 检索边界
 
-原理依据：[Edge 使用兼容 CDP 的接口](https://learn.microsoft.com/en-us/microsoft-edge/test-and-automation/devtools-protocol)、[Electron 调试启动参数](https://www.electronjs.org/docs/latest/api/command-line-switches)、[WebView2 调试配置](https://learn.microsoft.com/en-us/microsoft-edge/webview2/how-to/debug-visual-studio-code)。Chrome 调试需要[专用用户数据目录](https://developer.chrome.com/blog/remote-debugging-port)。
+- Wiki 全文搜索只负责候选发现；结果不代表穷尽全站。搜索索引可能找不到仅存在于模板展开结果里的值。
+- 分类名称以实际 Wiki 分类为准；不会把“作品”自动猜成某个分类。大分类可能直接成员少、子分类多；本版不递归抓取。
+- Wiki 信息栏和章节并不统一。“版本”“类型”“篇章”等缺少明确标注时无法核验；不会根据页面印象补造。
+- 字段别名包含常见简繁、英文标签；未内置全文简繁转换或语义模型。`~` 是字面包含匹配。作品归属判断是显式字段／分类等证据筛选，不等同于完整作品知识图谱。
+- 在线与离线同名条目分别展示并标来源，不自动合并或覆盖版本。导入本地资料可合并同 ID 更新或整体替换；导入前可导出备份。
+- 缓存有效期 30 分钟，最多 80 个接口响应；请求失败可使用过期缓存并显示提示。清缓存不会删除离线资料。
+- 原始 HTML 不插入界面，结果使用纯文本展示。资料进入提示词时标为资料，不能保证模型绝对不受网页中的指令性文字影响。
+- 本版没有章节级防剧透、聊天剧情摘要／关系变化追踪或语义向量搜索。自动查询、查询资料的模型整理、TXT/Markdown／世界书导入已在 0.3 实现。
+- 手动注入限 6000 字符；超预算的整条资料跳过并提示。切换聊天或生成结束自动清理。实际 SillyTavern/TauriTavern 安装兼容性仍需在目标宿主中验证。
 
-## 在酒馆中连接
-
-前端面板可保存本机地址、读取模型，并通过“应用到 API 连接”填写下表内容。设置修改在点击应用时生效，加载扩展本身不会切换当前主 API。“读取酒馆后端”用于发现已安装服务端插件的地址；TauriTavern 使用本机地址直接连接即可。缺少兼容宿主接口时会提示手动设置。
-
-打开“API 连接”，选择“聊天补全 → 自定义 / OpenAI 兼容”：
-
-| 字段 | 填写内容 |
-| --- | --- |
-| 自定义端点 / Base URL | `http://127.0.0.1:8788/v1` |
-| API Key | `sk-local`，本机接口不校验此字段 |
-| 模型 | `gemini-web` |
-| 流式传输 | 支持 SSE，也可以关闭 |
-
-插件在**酒馆进程内**自动监听本机回环端口 8788。该端口供酒馆服务端请求，远程访问酒馆时也填写此本机地址。它与浏览器或应用的 9222 调试端口不同。
-
-不要将 `/api/plugins/gemini-web-bridge` 填为模型端点：酒馆自身路由受登录和 CSRF 保护，普通模型客户端不会携带这些会话凭据。兼容接口使用插件管理的本机监听器，无需更改酒馆的 CSRF 设置。
-
-**Gemini 正文会等网页生成结束并停稳后，通过 SSE 一次返回。** 网页可能改写已经显示的文字，等待稳定可以避免重复和错误拼接；echo 自测后端仍逐段发送。
-
-## 配置
-
-编辑插件目录的 `config.json` 后重启酒馆。也可设置 `GEMINI_BRIDGE_CONFIG` 环境变量指定独立配置文件，便于更新插件时保留个人配置。
-
-| 键 | 默认值 | 作用 |
-| --- | --- | --- |
-| `host` | `127.0.0.1` | 只支持本机回环地址，也可用 `::1` |
-| `port` | `8788` | 插件的本机兼容 API 端口 |
-| `backend` | `gemini-cdp` | 真实 Gemini；改为 `echo` 可先自测连接 |
-| `modelId` | `gemini-web` | 暴露给客户端的模型名，不切换网页上的实际模型 |
-| `contextMode` | `full` | 将酒馆完整 messages 渲染成单条提示词 |
-| `nameForAssistant` | `角色` | 提示词中的助手称呼 |
-| `cdpPort` | `9222` | 浏览器或桌面应用的调试端口 |
-| `newChatEachRequest` | `true` | 每次打开新会话，避免重复追加历史 |
-| `maxWaitMs` | `180000` | 单次请求的等待上限，超时返回错误并尝试停止生成 |
-| `settleMs` | `1200` | 生成结束后文字需保持稳定的时长 |
-| `debug` | `false` | 打印完整提示词，可能包含角色卡和对话内容 |
-| `clientMode` | `browser` | `browser` / `app` / `desktop` / `attach` |
-| `browser` | `auto` | 自动检测，或指定受支持的浏览器名称 |
-| `browserPath` | 空 | 浏览器可执行文件的完整路径 |
-| `appPath` | 空 | 桌面 Gemini 客户端的可执行文件路径 |
-| `desktopEngine` | `auto` | `auto` / `electron` / `webview2` |
-| `autoLaunch` | `true` | 调试端点不可用时尝试启动客户端；attach 模式不启动 |
-| `cdpEndpoint` | 空 | 覆盖 `cdpPort`，填写本机 HTTP 或 WebSocket 调试地址 |
-| `targetId` | 空 | 精确选择 Gemini 页面或 WebView 的调试目标 |
-| `launchTimeoutMs` | `20000` | 启动客户端、等待调试端点和应用 WebView 的时长 |
-
-可选 `profileDir` 指定浏览器专用会话目录；`browserArgs`、`appArgs` 为额外参数字符串数组。例如网页因网络或代理打不开时，可以按浏览器的代理配置方式设置 `browserArgs: ["--proxy-server=http://127.0.0.1:你的代理端口"]`。插件不会修改系统代理。不要在额外参数中覆盖调试端口、应用模式或用户目录，使用上表配置字段。
-
-推荐 `full` + `newChatEachRequest: true`，酒馆掌握完整上下文，重新生成不会重复追加历史。
-
-如果选择 `lastUser`，请同时设置 `newChatEachRequest: false`：仅发送最后一条用户消息，让网页保留上下文。此模式不会同步酒馆中删除、编辑、切换聊天和重新生成对历史的修改，也不适合多个聊天共享同一个网页会话。
-
-桥接按顺序执行请求。停止生成或客户端断开时会取消任务；尚未执行的任务会被跳过，活动任务完成停止清理后再放行下一项。所有使用者共享这一个本机浏览器或应用会话。
-
-只支持文本输入。temperature、top_p、max_tokens 等参数不能直接控制消费级网页，模型和相关选项请在 Gemini 网页中设置。usage 中的 token 数是估算值。
-
-## 状态与排查
-
-- 在已登录的酒馆网页打开 `/api/plugins/gemini-web-bridge/status`，查看插件是否加载及实际模型端点。
-- 打开 `http://127.0.0.1:8788/health`，检查本机监听器；这里的 ok 仅表示接口存活，不代表 Google 登录有效。
-- 报“端口已占用”：关闭旧的独立桥接服务，或更改插件 `port`，并同步更新酒馆中的 Base URL。
-- 无法打开网页：先运行 `node tools/start-client.mjs --check`；它会显示调试端点、实际页面地址和输入框状态。端点不通说明客户端未启动或没有开放调试；页面出现网络错误则需检查该浏览器的网络/代理。
-- 调试端点不可用：运行 `start-gemini.bat`，确认窗口仍开启。普通浏览器或应用窗口未必开放调试端口。
-- 报登录失效、输入框找不到、超时：先在当前调试浏览器/应用内手动确认 Gemini 可用，再运行 `node tools/inspect-gemini.mjs` 检查选择器。
-- 网页改版时，候选选择器集中在 `backends/gemini-cdp.mjs` 的 `SEL` 中。
-- 前端使用 `SillyTavern.getContext()` 和扩展设置宿主，已参考提供的 TauriTavern 扩展结构处理；TauriTavern 后端请使用独立服务入口。前端 DOM 与兼容接口测试不等同于所有酒馆版本的现场验证。
-
-## 开发与自测
+## 开发与测试
 
 ```powershell
-npm install
-npm run build
-npm test
+node tools/bundle.mjs
+node --test test/*.test.mjs
+# 需要环境能解析 playwright，并安装 Chrome
+node tools/test-browser.mjs
+# 需要先构建 .runtime/upstream-adapter.mjs；拦截网络，使用假凭据
+node tools/test-upstream.mjs
+# 可选：真实公共 Wiki，只读联网
+node tools/test-live-api.mjs
+# 可选：已保存的实际页面解析，需要 test/live 中的本机样本
+node tools/test-live-pages.mjs
 ```
 
-`npm run build` 从 `web/extension.js`、`settings.html` 和包版本生成 `index.js`，同时同步 manifest 版本。请修改源文件后重建，避免直接改生成产物。
+浏览器测试报告与截图在 `test/output/`。详见 `TEST_REPORT.md` 与 `docs/API_NOTES.md`。
 
-开发测试使用 Express、jsdom 和 jQuery 验证后端路由、前端挂载与宿主事件；这些都是 devDependencies，已构建前端和后端运行时无需安装它们。`tools/package-plugin.ps1` 会先构建，再生成完整包和前端包。
-
-保留可选的独立诊断入口：
-
-```powershell
-node server.mjs --backend echo --port 8788
-node test/smoke.mjs
-node test/page-scripts.mjs
-```
-
-真实独立诊断使用 `node server.mjs --backend gemini-cdp`。不要与占用相同端口的酒馆插件同时运行。
-
-## 文件
-
-- `manifest.json`：酒馆前端扩展描述与加载入口。
-- `index.js`：已构建的前端单文件脚本。
-- `web/extension.js`、`settings.html`、`style.css`：前端源文件、面板模板和主题样式。
-- `INSTALL.md`：前端扩展安装与后端配套说明。
-- `index.mjs`：酒馆插件的 info / init / exit 生命周期。
-- `lib/service.mjs`：配置、兼容 API 监听器与关闭清理。
-- `lib/bridge.mjs`：OpenAI 兼容接口、校验、SSE、队列与取消。
-- `lib/cdp.mjs`：带连接检查、超时和取消的 CDP 客户端。
-- `lib/client.mjs`：多浏览器检测、网页应用/桌面客户端启动与调试目标选择。
-- `tools/start-client.mjs`：统一启动入口与 `--check` 诊断。
-- `backends/gemini-cdp.mjs`：页面等待、新回答识别与生成控制。
-- `server.mjs`：可选独立诊断入口。
+目录：`src/fields.js` 字段与条件；`src/extract.js` HTML 提取；`src/provider.js` 桥接与缓存；`src/engine.js` 核验与离线补充；`src/host.js` 酒馆工具和注入；`src/panel.js` 面板；`tools/bridge.mjs` 只读后端；`tools/prepare-upstream.mjs` 上游构建适配。

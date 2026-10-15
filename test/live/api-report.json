@@ -1,0 +1,38 @@
+{
+  "at": "2026-10-15T14:30:37.527Z",
+  "source": "https://thwiki.cc/api.php",
+  "report": [
+    {
+      "operation": "siteinfo",
+      "ok": true,
+      "count": null,
+      "title": "THBWiki"
+    },
+    {
+      "operation": "search",
+      "ok": true,
+      "count": 1
+    },
+    {
+      "operation": "search-categories",
+      "ok": true,
+      "count": 2
+    },
+    {
+      "operation": "get-page",
+      "ok": true,
+      "count": null,
+      "title": "博丽灵梦"
+    },
+    {
+      "operation": "get-categories",
+      "ok": true,
+      "count": 3
+    },
+    {
+      "operation": "get-category-members",
+      "ok": true,
+      "count": 0
+    }
+  ]
+}

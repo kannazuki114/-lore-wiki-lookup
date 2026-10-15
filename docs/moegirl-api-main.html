@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html class="client-nojs" lang="zh-Hans-CN" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>MediaWiki API 帮助 - 萌娘百科 万物皆可萌的百科全书</title>
+<script>document.documentElement.className="client-js";RLCONF={"wgBreakFrames":true,"wgSeparatorTransformTable":["",""],"wgDigitTransformTable":["",""],"wgDefaultDateFormat":"zh","wgMonthNames":["","1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],"wgRequestId":"146025ec592ba322047178b6","wgCanonicalNamespace":"Special","wgCanonicalSpecialPageName":"ApiHelp","wgNamespaceNumber":-1,"wgPageName":"Special:API帮助","wgTitle":"API帮助","wgCurRevisionId":0,"wgRevisionId":0,"wgArticleId":0,"wgIsArticle":false,"wgIsRedirect":false,"wgAction":"view","wgUserName":null,"wgUserGroups":["*"],"wgCategories":[],"wgPageViewLanguage":"zh-cn","wgPageContentLanguage":"zh-cn","wgPageContentModel":"wikitext","wgRelevantPageName":"Special:API帮助","wgRelevantArticleId":0,"wgIsProbablyEditable":false,"wgRelevantPageIsProbablyEditable":false,"wgCiteReferencePreviewsActive":false,"wgMediaViewerOnClick":true,"wgMediaViewerEnabledByDefault":true,"wgVisualEditor":{"pageLanguageCode":"zh-Hans-CN","pageLanguageDir":"ltr","pageVariantFallbacks":"zh-cn"},"wgMoeDisplayName":"","ext.avatar.current_user.url":"https://storage.moegirl.org.cn/moegirl/avatars/0/latest.png","ext.avatar.current_user.thumb_url":"https://storage.moegirl.org.cn/moegirl/avatars/0/latest.png!avatar.thumb","wgEditSubmitButtonLabelPublish":false,"wgMoeAuthConfig":{"endpoint":"https://app.moegirl.org.cn/moe-auth/","specialHijackMap":{"ChangeCredentials":["更改凭据","變更憑證","ChangeCredentials"],"ChangePassword":["修改密码","重置密码","找回密码","修改密码","修改密碼","變更密碼","修改密碼","密碼重設","ChangePassword","ResetPass","ResetPassword"],"CreateAccount":["创建账户","创建账户","創建賬戶","建立帳戶","建立帳號","建立帐号","建立帳號","建立帳戶","CreateAccount"],"Userlogin":["用户登录","登录","用户登录","用戶登入","使用者登入","使用者登入","UserLogin","Login"]}}};
+RLSTATE={"ext.gadget.GothicMoe":"ready","ext.gadget.site-styles":"ready","site.styles":"ready","user.options":"loading","mediawiki.hlist":"ready","mediawiki.apipretty":"ready","mediawiki.skinning.interface":"ready","ext.visualEditor.desktopArticleTarget.noscript":"ready","ext.moderation.commons":"ready","ext.moegirl.achievements.badge":"ready"};RLPAGEMODULES=["mediawiki.page.ready","ext.visualEditor.desktopArticleTarget.init","ext.visualEditor.targetLoader","ext.moeauth.hijack"];</script>
+<script>(RLQ=window.RLQ||[]).push(function(){mw.loader.impl(function(){return["user.options@12s5i",function($,jQuery,require,module){mw.user.tokens.set({"patrolToken":"+\\","watchToken":"+\\","csrfToken":"+\\"});mw.user.options.set({"language":"zh-cn","variant":"zh-cn"});
+}];});});</script>
+<link rel="stylesheet" href="/load.php?lang=zh-cn&amp;modules=ext.moderation.commons%7Cext.moegirl.achievements.badge%7Cext.visualEditor.desktopArticleTarget.noscript%7Cmediawiki.apipretty%2Chlist%7Cmediawiki.skinning.interface&amp;only=styles&amp;skin=apioutput">
+<script async="" src="/load.php?lang=zh-cn&amp;modules=startup&amp;only=scripts&amp;raw=1&amp;safemode=1&amp;skin=apioutput"></script>
+<meta name="ResourceLoaderDynamicStyles" content="">
+<link rel="stylesheet" href="/load.php?lang=zh-cn&amp;modules=ext.gadget.GothicMoe%2Csite-styles&amp;only=styles&amp;skin=apioutput">
+<link rel="stylesheet" href="/load.php?lang=zh-cn&amp;modules=site.styles&amp;only=styles&amp;skin=apioutput">
+<meta name="generator" content="MediaWiki 1.43.3">
+<meta name="robots" content="noindex,nofollow,max-image-preview:standard">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-itunes-app" content="app-id=1612184625, app-argument=moegirl://detail">
+<meta name="viewport" content="width=1120">
+<link rel="icon" href="https://storage.moegirl.org.cn/moegirl/logo/favicon/favicon.ico">
+<link rel="search" type="application/opensearchdescription+xml" href="/rest.php/v1/search" title="萌娘百科 (zh)">
+<link rel="EditURI" type="application/rsd+xml" href="https://mzh.moegirl.org.cn/api.php?action=rsd">
+<link rel="canonical" href="https://mzh.moegirl.org.cn/Special:API%E5%B8%AE%E5%8A%A9">
+<link rel="license" href="https://www.mediawiki.org/wiki/Special:MyLanguage/Copyright">
+<link rel="alternate" type="application/atom+xml" title="萌娘百科的Atom feed" href="/index.php?title=Special:%E6%9C%80%E8%BF%91%E6%9B%B4%E6%94%B9&amp;feed=atom">
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=UA-173135727-1'></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag() { dataLayer.push(arguments); }
+gtag('js', new Date());
+gtag('config', 'UA-173135727-1');
+</script>
+    
+<script async src="https://fundingchoicesmessages.google.com/i/pub-1548272863545777?ers=1" nonce="pZjwXwYB8HZbw7pyXfFl9Q"></script><script nonce="pZjwXwYB8HZbw7pyXfFl9Q">(function() {function signalGooglefcPresent() {if (!window.frames['googlefcPresent']) {if (document.body) {const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe);} else {setTimeout(signalGooglefcPresent, 0);}}}signalGooglefcPresent();})();</script>
+<script>(function(){/*
+Copyright The Closure Library Authors.
+SPDX-License-Identifier: Apache-2.0
+*/
+"use strict";var aa=function(a){var b=0;return function(){return b<a.length?{done:!1,value:a[b++]}:{done:!0}}},ba="function"==typeof Object.create?Object.create:function(a){var b=function(){};b.prototype=a;return new b},k;if("function"==typeof Object.setPrototypeOf)k=Object.setPrototypeOf;else{var m;a:{var ca={a:!0},n={};try{n.__proto__=ca;m=n.a;break a}catch(a){}m=!1}k=m?function(a,b){a.__proto__=b;if(a.__proto__!==b)throw new TypeError(a+" is not extensible");return a}:null}
+var p=k,q=function(a,b){a.prototype=ba(b.prototype);a.prototype.constructor=a;if(p)p(a,b);else for(var c in b)if("prototype"!=c)if(Object.defineProperties){var d=Object.getOwnPropertyDescriptor(b,c);d&&Object.defineProperty(a,c,d)}else a[c]=b[c];a.v=b.prototype},r=this||self,da=function(){},t=function(a){return a};var u;var w=function(a,b){this.g=b===v?a:""};w.prototype.toString=function(){return this.g+""};var v={},x=function(a){if(void 0===u){var b=null;var c=r.trustedTypes;if(c&&c.createPolicy){try{b=c.createPolicy("goog#html",{createHTML:t,createScript:t,createScriptURL:t})}catch(d){r.console&&r.console.error(d.message)}u=b}else u=b}a=(b=u)?b.createScriptURL(a):a;return new w(a,v)};var A=function(){return Math.floor(2147483648*Math.random()).toString(36)+Math.abs(Math.floor(2147483648*Math.random())^Date.now()).toString(36)};var B={},C=null;var D="function"===typeof Uint8Array;function E(a,b,c){return"object"===typeof a?D&&!Array.isArray(a)&&a instanceof Uint8Array?c(a):F(a,b,c):b(a)}function F(a,b,c){if(Array.isArray(a)){for(var d=Array(a.length),e=0;e<a.length;e++){var f=a[e];null!=f&&(d[e]=E(f,b,c))}Array.isArray(a)&&a.s&&G(d);return d}d={};for(e in a)Object.prototype.hasOwnProperty.call(a,e)&&(f=a[e],null!=f&&(d[e]=E(f,b,c)));return d}
+function ea(a){return F(a,function(b){return"number"===typeof b?isFinite(b)?b:String(b):b},function(b){var c;void 0===c&&(c=0);if(!C){C={};for(var d="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split(""),e=["+/=","+/","-_=","-_.","-_"],f=0;5>f;f++){var h=d.concat(e[f].split(""));B[f]=h;for(var g=0;g<h.length;g++){var l=h[g];void 0===C[l]&&(C[l]=g)}}}c=B[c];d=Array(Math.floor(b.length/3));e=c[64]||"";for(f=h=0;h<b.length-2;h+=3){var y=b[h],z=b[h+1];l=b[h+2];g=c[y>>2];y=c[(y&3)<<
+4|z>>4];z=c[(z&15)<<2|l>>6];l=c[l&63];d[f++]=""+g+y+z+l}g=0;l=e;switch(b.length-h){case 2:g=b[h+1],l=c[(g&15)<<2]||e;case 1:b=b[h],d[f]=""+c[b>>2]+c[(b&3)<<4|g>>4]+l+e}return d.join("")})}var fa={s:{value:!0,configurable:!0}},G=function(a){Array.isArray(a)&&!Object.isFrozen(a)&&Object.defineProperties(a,fa);return a};var H;var J=function(a,b,c){var d=H;H=null;a||(a=d);d=this.constructor.u;a||(a=d?[d]:[]);this.j=d?0:-1;this.h=null;this.g=a;a:{d=this.g.length;a=d-1;if(d&&(d=this.g[a],!(null===d||"object"!=typeof d||Array.isArray(d)||D&&d instanceof Uint8Array))){this.l=a-this.j;this.i=d;break a}void 0!==b&&-1<b?(this.l=Math.max(b,a+1-this.j),this.i=null):this.l=Number.MAX_VALUE}if(c)for(b=0;b<c.length;b++)a=c[b],a<this.l?(a+=this.j,(d=this.g[a])?G(d):this.g[a]=I):(d=this.l+this.j,this.g[d]||(this.i=this.g[d]={}),(d=this.i[a])?
+G(d):this.i[a]=I)},I=Object.freeze(G([])),K=function(a,b){if(-1===b)return null;if(b<a.l){b+=a.j;var c=a.g[b];return c!==I?c:a.g[b]=G([])}if(a.i)return c=a.i[b],c!==I?c:a.i[b]=G([])},M=function(a,b){var c=L;if(-1===b)return null;a.h||(a.h={});if(!a.h[b]){var d=K(a,b);d&&(a.h[b]=new c(d))}return a.h[b]};J.prototype.toJSON=function(){var a=N(this,!1);return ea(a)};
+var N=function(a,b){if(a.h)for(var c in a.h)if(Object.prototype.hasOwnProperty.call(a.h,c)){var d=a.h[c];if(Array.isArray(d))for(var e=0;e<d.length;e++)d[e]&&N(d[e],b);else d&&N(d,b)}return a.g},O=function(a,b){H=b=b?JSON.parse(b):null;a=new a(b);H=null;return a};J.prototype.toString=function(){return N(this,!1).toString()};var P=function(a){J.call(this,a)};q(P,J);function ha(a){var b,c=(a.ownerDocument&&a.ownerDocument.defaultView||window).document,d=null===(b=c.querySelector)||void 0===b?void 0:b.call(c,"script[nonce]");(b=d?d.nonce||d.getAttribute("nonce")||"":"")&&a.setAttribute("nonce",b)};var Q=function(a,b){b=String(b);"application/xhtml+xml"===a.contentType&&(b=b.toLowerCase());return a.createElement(b)},R=function(a){this.g=a||r.document||document};R.prototype.appendChild=function(a,b){a.appendChild(b)};var S=function(a,b,c,d,e,f){try{var h=a.g,g=Q(a.g,"SCRIPT");g.async=!0;g.src=b instanceof w&&b.constructor===w?b.g:"type_error:TrustedResourceUrl";ha(g);h.head.appendChild(g);g.addEventListener("load",function(){e();d&&h.head.removeChild(g)});g.addEventListener("error",function(){0<c?S(a,b,c-1,d,e,f):(d&&h.head.removeChild(g),f())})}catch(l){f()}};var ia=r.atob("aHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20vaW1hZ2VzL2ljb25zL21hdGVyaWFsL3N5c3RlbS8xeC93YXJuaW5nX2FtYmVyXzI0ZHAucG5n"),ja=r.atob("WW91IGFyZSBzZWVpbmcgdGhpcyBtZXNzYWdlIGJlY2F1c2UgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlIGlzIGludGVyZmVyaW5nIHdpdGggdGhpcyBwYWdlLg=="),ka=r.atob("RGlzYWJsZSBhbnkgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlLCB0aGVuIHJlbG9hZCB0aGlzIHBhZ2Uu"),la=function(a,b,c){this.h=a;this.j=new R(this.h);this.g=null;this.i=[];this.l=!1;this.o=b;this.m=c},V=function(a){if(a.h.body&&!a.l){var b=
+function(){T(a);r.setTimeout(function(){return U(a,3)},50)};S(a.j,a.o,2,!0,function(){r[a.m]||b()},b);a.l=!0}},T=function(a){for(var b=W(1,5),c=0;c<b;c++){var d=X(a);a.h.body.appendChild(d);a.i.push(d)}b=X(a);b.style.bottom="0";b.style.left="0";b.style.position="fixed";b.style.width=W(100,110).toString()+"%";b.style.zIndex=W(2147483544,2147483644).toString();b.style["background-color"]=ma(249,259,242,252,219,229);b.style["box-shadow"]="0 0 12px #888";b.style.color=ma(0,10,0,10,0,10);b.style.display=
+"flex";b.style["justify-content"]="center";b.style["font-family"]="Roboto, Arial";c=X(a);c.style.width=W(80,85).toString()+"%";c.style.maxWidth=W(750,775).toString()+"px";c.style.margin="24px";c.style.display="flex";c.style["align-items"]="flex-start";c.style["justify-content"]="center";d=Q(a.j.g,"IMG");d.className=A();d.src=ia;d.style.height="24px";d.style.width="24px";d.style["padding-right"]="16px";var e=X(a),f=X(a);f.style["font-weight"]="bold";f.textContent=ja;var h=X(a);h.textContent=ka;Y(a,
+e,f);Y(a,e,h);Y(a,c,d);Y(a,c,e);Y(a,b,c);a.g=b;a.h.body.appendChild(a.g);b=W(1,5);for(c=0;c<b;c++)d=X(a),a.h.body.appendChild(d),a.i.push(d)},Y=function(a,b,c){for(var d=W(1,5),e=0;e<d;e++){var f=X(a);b.appendChild(f)}b.appendChild(c);c=W(1,5);for(d=0;d<c;d++)e=X(a),b.appendChild(e)},W=function(a,b){return Math.floor(a+Math.random()*(b-a))},ma=function(a,b,c,d,e,f){return"rgb("+W(Math.max(a,0),Math.min(b,255)).toString()+","+W(Math.max(c,0),Math.min(d,255)).toString()+","+W(Math.max(e,0),Math.min(f,
+255)).toString()+")"},X=function(a){a=Q(a.j.g,"DIV");a.className=A();return a},U=function(a,b){0>=b||null!=a.g&&0!=a.g.offsetHeight&&0!=a.g.offsetWidth||(na(a),T(a),r.setTimeout(function(){return U(a,b-1)},50))},na=function(a){var b=a.i;var c="undefined"!=typeof Symbol&&Symbol.iterator&&b[Symbol.iterator];b=c?c.call(b):{next:aa(b)};for(c=b.next();!c.done;c=b.next())(c=c.value)&&c.parentNode&&c.parentNode.removeChild(c);a.i=[];(b=a.g)&&b.parentNode&&b.parentNode.removeChild(b);a.g=null};var pa=function(a,b,c,d,e){var f=oa(c),h=function(l){l.appendChild(f);r.setTimeout(function(){f?(0!==f.offsetHeight&&0!==f.offsetWidth?b():a(),f.parentNode&&f.parentNode.removeChild(f)):a()},d)},g=function(l){document.body?h(document.body):0<l?r.setTimeout(function(){g(l-1)},e):b()};g(3)},oa=function(a){var b=document.createElement("div");b.className=a;b.style.width="1px";b.style.height="1px";b.style.position="absolute";b.style.left="-10000px";b.style.top="-10000px";b.style.zIndex="-10000";return b};var L=function(a){J.call(this,a)};q(L,J);var qa=function(a){J.call(this,a)};q(qa,J);var ra=function(a,b){this.l=a;this.m=new R(a.document);this.g=b;this.i=K(this.g,1);b=M(this.g,2);this.o=x(K(b,4)||"");this.h=!1;b=M(this.g,13);b=x(K(b,4)||"");this.j=new la(a.document,b,K(this.g,12))};ra.prototype.start=function(){sa(this)};
+var sa=function(a){ta(a);S(a.m,a.o,3,!1,function(){a:{var b=a.i;var c=r.btoa(b);if(c=r[c]){try{var d=O(P,r.atob(c))}catch(e){b=!1;break a}b=b===K(d,1)}else b=!1}b?Z(a,K(a.g,14)):(Z(a,K(a.g,8)),V(a.j))},function(){pa(function(){Z(a,K(a.g,7));V(a.j)},function(){return Z(a,K(a.g,6))},K(a.g,9),K(a.g,10),K(a.g,11))})},Z=function(a,b){a.h||(a.h=!0,a=new a.l.XMLHttpRequest,a.open("GET",b,!0),a.send())},ta=function(a){var b=r.btoa(a.i);a.l[b]&&Z(a,K(a.g,5))};(function(a,b){r[a]=function(c){for(var d=[],e=0;e<arguments.length;++e)d[e-0]=arguments[e];r[a]=da;b.apply(null,d)}})("__h82AlnkH6D91__",function(a){"function"===typeof window.atob&&(new ra(window,O(qa,window.atob(a)))).start()});}).call(this);
+window.__h82AlnkH6D91__("WyJwdWItMTU0ODI3Mjg2MzU0NTc3NyIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi0xNTQ4MjcyODYzNTQ1Nzc3Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hXNkp2cHlNRlF0X0hfMkhjY2h0bUpISzBnZVRnajhMczk2Y3ZaWmNPLXczVURMcWxHZGp2T0lzRmo4VFRTRW1XREFoMG1rbDVjVFlFWXVsekF2ZGVGYXJRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhDTm1LWS1iSjJ1YjZ3NHBFV0l5VHF1ZC1PbWZMczBZTHZWUDJveURuUGRlOExoUGxQRTFWSWtMalFGVXhOci1mMVg5ZWI0NFBmWVA0VS1pZ0puQll6SEFcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhFRkNMUFcwNGFTVHl2WDJhUzNnUUtKUUg5cmVlVjZOaUhYUlR0c0hBbG9GZEFVVEdKajlYY3pIRzhnOVVwTmlOX2FPeXpaQVpJMnRqemdHZlV1MVpSN0FcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZSQkJPVXphejZsUTdnQ0xpRFY3bGNGMDZYUTgwaXFUeE9JQ1pFT1JhLXBteElNbV8zOE9fdUxiSlpqbVdEVUx2eVNJb29COHRobk9ZTEFEeXFiT25uX0FcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxURTFORGd5TnpJNE5qTTFORFUzTnpjXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi0xNTQ4MjcyODYzNTQ1Nzc3LmpzP3VzcXBcdTAwM2RDQUkiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4WFZCT1FwSlQ2eS1WV2RkR2FzcHBSZVZMRUFKNjk5VXQ0VWJPYTJzcEdfMTZ2eF9hc2ZCRDdYNUJ5dkc4RzB3SlZTdGlCT3RQc3ctbDBPTUM5bENBWUh1d1x1MDAzZFx1MDAzZCJd");</script>
+<script src="https://app.moegirl.org.cn/moe-auth/modal-builder/index.umd.cjs" async=""></script>
+</head>
+<body class="mediawiki ltr sitedir-ltr mw-hide-empty-elt ns--1 ns-special mw-special-ApiHelp page-Special_API帮助 rootpage-Special_API帮助 skin-apioutput action-view user-anon"><a href="https://mzh.moegirl.org.cn/cdn-cgi/content?id=rulYxvwCUZwIBNxr94dOy_50Vliad4oUurPZgtcfF7A-1792071868.6702077-1.2.1.1-N7CvjySU7WKlyI2krQJPkm5I0YVLLoZve06hgwgc90O711zjssSCZur3iYqZ.WYV" aria-hidden="true" rel="nofollow noopener" style="display: none !important; visibility: hidden !important"></a><div class="mw-body" role="main">
+	<h1 id="firstHeading">MediaWiki API 帮助</h1>
+	<div class="mw-body-content">
+		<div id="mw-content-text" class="mw-body-content"><p>这是自动生成的MediaWiki API文档页面。
+</p><p>文档和例子：<a target="_blank" rel="nofollow noreferrer noopener" class="external free" href="https://www.mediawiki.org/wiki/Special:MyLanguage/API:Main_page">https://www.mediawiki.org/wiki/Special:MyLanguage/API:Main_page</a>
+</p><h2 class="apihelp-header" id="main">主模块</h2>
+<div class="apihelp-block apihelp-flags"><ul><li><span class="apihelp-source">来源：<span dir="ltr" lang="en">MediaWiki</span></span></li><li><span class="apihelp-license">许可协议：<a href="/Special:%E7%89%88%E6%9C%AC/License/MediaWiki" title="Special:版本/License/MediaWiki"><span dir="ltr" lang="en">GPL-2.0-or-later</span></a></span></li></ul></div>
+<div class="hlist plainlinks api-main-links">
+<ul><li><a href="https://www.mediawiki.org/wiki/Special:MyLanguage/API:Main_page" class="extiw" title="mw:Special:MyLanguage/API:Main page">文档</a></li>
+<li><a href="https://www.mediawiki.org/wiki/Special:MyLanguage/API:Etiquette" class="extiw" title="mw:Special:MyLanguage/API:Etiquette">礼仪和使用指引</a></li>
+<li><a href="https://www.mediawiki.org/wiki/Special:MyLanguage/API:FAQ" class="extiw" title="mw:Special:MyLanguage/API:FAQ">常见问题</a></li>
+<li><a target="_blank" rel="nofollow noreferrer noopener" class="external text" href="https://lists.wikimedia.org/postorius/lists/mediawiki-api.lists.wikimedia.org/">邮件列表</a></li>
+<li><a target="_blank" rel="nofollow noreferrer noopener" class="external text" href="https://lists.wikimedia.org/postorius/lists/mediawiki-api-announce.lists.wikimedia.org/">API宣告</a></li>
+<li><a target="_blank" rel="nofollow noreferrer noopener" class="external text" href="https://phabricator.wikimedia.org/maniphest/query/GebfyV4uCaLd/#R">程序错误与功能请求</a></li></ul>
+</div>
+<p><strong>状态：</strong>MediaWiki API已是成熟稳定的接口，且会得到积极的支持和改进。尽管我们尽力避免，但偶尔也需要作出重大更新；请订阅<a target="_blank" rel="nofollow noreferrer noopener" class="external text" href="https://lists.wikimedia.org/hyperkitty/list/mediawiki-api-announce@lists.wikimedia.org/">mediawiki-api-announce 邮件列表</a>以便获得更新通知。
+</p><p><strong>错误请求：</strong>当API收到错误请求时，HTTP header将会返回一个包含"MediaWiki-API-Error"的值，随后header的值与错误代码将会返回并设置为相同的值。详细信息请参阅<a href="https://www.mediawiki.org/wiki/Special:MyLanguage/API:Errors_and_warnings" class="extiw" title="mw:Special:MyLanguage/API:Errors and warnings">API:错误与警告</a>。
+</p>
+<p class="mw-apisandbox-link"><strong>测试：</strong>要简化测试API请求的过程，请参见<a href="/Special:API%E6%B2%99%E7%9B%92" title="Special:API沙盒">Special:ApiSandbox</a>。</p>
+
+<div class="apihelp-block apihelp-parameters"><div class="apihelp-block-head">具体参数：</div><dl><dt><span dir="ltr" lang="en" id="main:action">action</span></dt><dd class="description"><p>要执行的操作。
+</p><dl><dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefiltercheckmatch" title="Special:API帮助/abusefiltercheckmatch">abusefiltercheckmatch</a></span></dt>
+<dd>检查以查看滥用过滤器是否匹配某个变量集、某次编辑或某条日志记载的过滤器活动。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefilterchecksyntax" title="Special:API帮助/abusefilterchecksyntax">abusefilterchecksyntax</a></span></dt>
+<dd>检查一个滥用过滤器的语法。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefilterevalexpression" title="Special:API帮助/abusefilterevalexpression">abusefilterevalexpression</a></span></dt>
+<dd>评估滥用过滤器的表达式。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefilterunblockautopromote" title="Special:API帮助/abusefilterunblockautopromote">abusefilterunblockautopromote</a></span></dt>
+<dd>通过解除因滥用过滤器操作生效的自动提升剥夺来解封用户。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/abuselogprivatedetails" title="Special:API帮助/abuselogprivatedetails">abuselogprivatedetails</a></span></dt>
+<dd>显示AbuseLog项目的私有详情。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/acquiretempusername" title="Special:API帮助/acquiretempusername">acquiretempusername</a></span></dt>
+<dd>启用临时账号创建并且当前用户已退出时，获取临时用户的用户名并将其存储在当前会话中。如果名称已存储，则返回相同的名称。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/block" title="Special:API帮助/block">block</a></span></dt>
+<dd>封禁一位用户。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/changeauthenticationdata" title="Special:API帮助/changeauthenticationdata">changeauthenticationdata</a></span></dt>
+<dd>更改当前用户的身份验证数据。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/changecontentmodel" title="Special:API帮助/changecontentmodel">changecontentmodel</a></span></dt>
+<dd>变更页面的内容模型</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/checktoken" title="Special:API帮助/checktoken">checktoken</a></span></dt>
+<dd>从<kbd><a href="/Special:API%E5%B8%AE%E5%8A%A9/query%2Btokens" title="Special:API帮助/query+tokens">action=query&amp;meta=tokens</a></kbd>检查令牌有效性。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-config-dump" title="Special:API帮助/cirrus-config-dump">cirrus-config-dump</a></span></dt>
+<dd>CirrusSearch配置的转储。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-mapping-dump" title="Special:API帮助/cirrus-mapping-dump">cirrus-mapping-dump</a></span></dt>
+<dd>用于此wiki的CirrusSearch映射转储。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-profiles-dump" title="Special:API帮助/cirrus-profiles-dump">cirrus-profiles-dump</a></span></dt>
+<dd>此Wiki上的CirrusSearch配置文件转储。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-settings-dump" title="Special:API帮助/cirrus-settings-dump">cirrus-settings-dump</a></span></dt>
+<dd>用于此wiki的CirrusSearch设置转储。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/clearhasmsg" title="Special:API帮助/clearhasmsg">clearhasmsg</a></span></dt>
+<dd>清除当前用户的<code>hasmsg</code>标记。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/clientlogin" title="Special:API帮助/clientlogin">clientlogin</a></span></dt>
+<dd>使用交互式流登录wiki。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/compare" title="Special:API帮助/compare">compare</a></span></dt>
+<dd>获取两页面之间的差异。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/contributionheatmap" title="Special:API帮助/contributionheatmap">contributionheatmap</a></span></dt>
+<dd>返回指定用户在日期范围内的每日编辑次数（稀疏数组），供前端渲染 GitHub 风格的瓷砖热力图。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/contributionscore" title="Special:API帮助/contributionscore">contributionscore</a></span></dt>
+<dd>返回指定用户的总编辑数、独立页面数与贡献分数。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/createaccount" title="Special:API帮助/createaccount">createaccount</a></span></dt>
+<dd>创建新用户账号。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/delete" title="Special:API帮助/delete">delete</a></span></dt>
+<dd>删除一个页面。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsedit" title="Special:API帮助/discussiontoolsedit">discussiontoolsedit</a></span></dt>
+<dd>在讨论页面上发布留言。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsfindcomment" title="Special:API帮助/discussiontoolsfindcomment">discussiontoolsfindcomment</a></span></dt>
+<dd>按ID或名称查找留言。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsgetsubscriptions" title="Special:API帮助/discussiontoolsgetsubscriptions">discussiontoolsgetsubscriptions</a></span></dt>
+<dd>获取给定话题的订阅状态。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolssubscribe" title="Special:API帮助/discussiontoolssubscribe">discussiontoolssubscribe</a></span></dt>
+<dd>订阅（或取消订阅）来接收有关话题的通知。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsthank" title="Special:API帮助/discussiontoolsthank">discussiontoolsthank</a></span></dt>
+<dd>发送公开的感谢留言通知。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/echocreateevent" title="Special:API帮助/echocreateevent">echocreateevent</a></span></dt>
+<dd>手动触发给用户的通知</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/echomarkread" title="Special:API帮助/echomarkread">echomarkread</a></span></dt>
+<dd>把当前用户的通知标记为已读。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/echomarkseen" title="Special:API帮助/echomarkseen">echomarkseen</a></span></dt>
+<dd>把当前用户的通知标记为已查看。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/echomute" title="Special:API帮助/echomute">echomute</a></span></dt>
+<dd>屏蔽或取消屏蔽来自特定用户或页面的通知。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/edit" title="Special:API帮助/edit">edit</a></span></dt>
+<dd>创建和编辑页面。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/emailuser" title="Special:API帮助/emailuser">emailuser</a></span></dt>
+<dd>电子邮件联系一位用户。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/expandtemplates" title="Special:API帮助/expandtemplates">expandtemplates</a></span></dt>
+<dd>展开wikitext中的所有模板。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/feedcontributions" title="Special:API帮助/feedcontributions">feedcontributions</a></span></dt>
+<dd>返回用户贡献纲要。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/feedrecentchanges" title="Special:API帮助/feedrecentchanges">feedrecentchanges</a></span></dt>
+<dd>返回最近更改的摘要。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/feedwatchlist" title="Special:API帮助/feedwatchlist">feedwatchlist</a></span></dt>
+<dd>返回监视列表纲要。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/filerevert" title="Special:API帮助/filerevert">filerevert</a></span></dt>
+<dd>回退一个文件至某一旧版本。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/help" title="Special:API帮助/help">help</a></span></dt>
+<dd>显示指定模块的帮助。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/imagerotate" title="Special:API帮助/imagerotate">imagerotate</a></span></dt>
+<dd>旋转一幅或多幅图像。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/import" title="Special:API帮助/import">import</a></span></dt>
+<dd>从其他wiki，或从XML文件导入页面。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/linkaccount" title="Special:API帮助/linkaccount">linkaccount</a></span></dt>
+<dd>将来自第三方提供商的账号链接至当前用户。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/login" title="Special:API帮助/login">login</a></span></dt>
+<dd>登录并获取身份验证cookie。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/logout" title="Special:API帮助/logout">logout</a></span></dt>
+<dd>退出并清除会话数据。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/managetags" title="Special:API帮助/managetags">managetags</a></span></dt>
+<dd>执行有关更改标签的管理任务。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/mergehistory" title="Special:API帮助/mergehistory">mergehistory</a></span></dt>
+<dd>合并页面历史。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/moedisplayname" title="Special:API帮助/moedisplayname">moedisplayname</a></span></dt>
+<dd></dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/move" title="Special:API帮助/move">move</a></span></dt>
+<dd>移动一个页面。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/opensearch" title="Special:API帮助/opensearch">opensearch</a></span></dt>
+<dd>使用开放搜索协议搜索wiki。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/options" title="Special:API帮助/options">options</a></span></dt>
+<dd>更改当前用户的参数设置。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/paraminfo" title="Special:API帮助/paraminfo">paraminfo</a></span></dt>
+<dd>获得关于API模块的信息。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/parse" title="Special:API帮助/parse">parse</a></span></dt>
+<dd>解析内容并返回解析器输出。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/patrol" title="Special:API帮助/patrol">patrol</a></span></dt>
+<dd>巡查页面或修订版本。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/pollsubmitvote" title="Special:API帮助/pollsubmitvote">pollsubmitvote</a></span></dt>
+<dd>AJAXPoll API模块</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/protect" title="Special:API帮助/protect">protect</a></span></dt>
+<dd>更改页面的保护等级。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/purge" title="Special:API帮助/purge">purge</a></span></dt>
+<dd>为指定标题刷新缓存。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/query" title="Special:API帮助/query">query</a></span></dt>
+<dd>取得来自并有关MediaWiki的数据。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/removeauthenticationdata" title="Special:API帮助/removeauthenticationdata">removeauthenticationdata</a></span></dt>
+<dd>从当前用户移除身份验证数据。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/resetpassword" title="Special:API帮助/resetpassword">resetpassword</a></span></dt>
+<dd>向用户发送密码重置邮件。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/revisiondelete" title="Special:API帮助/revisiondelete">revisiondelete</a></span></dt>
+<dd>删除和恢复修订版本。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/rollback" title="Special:API帮助/rollback">rollback</a></span></dt>
+<dd>撤销对页面的最近编辑。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/rsd" title="Special:API帮助/rsd">rsd</a></span></dt>
+<dd>导出一个RSD（Really Simple Discovery）架构。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/setnotificationtimestamp" title="Special:API帮助/setnotificationtimestamp">setnotificationtimestamp</a></span></dt>
+<dd>更新监视页面的通知时间戳。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/setpagelanguage" title="Special:API帮助/setpagelanguage">setpagelanguage</a></span></dt>
+<dd>更改页面的语言。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/spamblacklist" title="Special:API帮助/spamblacklist">spamblacklist</a></span></dt>
+<dd>验证一个或多个URL是否属于垃圾链接阻止列表。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/tag" title="Special:API帮助/tag">tag</a></span></dt>
+<dd>从个别修订或日志记录中添加或移除更改标签。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/templatedata" title="Special:API帮助/templatedata">templatedata</a></span></dt>
+<dd>获取由模板数据扩展存储的数据。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/thank" title="Special:API帮助/thank">thank</a></span></dt>
+<dd>向一名编辑者发送感谢通知。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/titleblacklist" title="Special:API帮助/titleblacklist">titleblacklist</a></span></dt>
+<dd>验证一个页面的标题、文件名或用户名是否触发标题黑名单。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/transcodereset" title="Special:API帮助/transcodereset">transcodereset</a></span></dt>
+<dd>持有“transcode-reset”权限的用户可以重置并重启转码任务。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/unblock" title="Special:API帮助/unblock">unblock</a></span></dt>
+<dd>解封一位用户。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/undelete" title="Special:API帮助/undelete">undelete</a></span></dt>
+<dd>取消删除页面的修订版本。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/unlinkaccount" title="Special:API帮助/unlinkaccount">unlinkaccount</a></span></dt>
+<dd>从当前用户移除已链接的第三方账号。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/upload" title="Special:API帮助/upload">upload</a></span></dt>
+<dd>上传文件，或获取正在等待中的上传的状态。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/userrights" title="Special:API帮助/userrights">userrights</a></span></dt>
+<dd>更改一位用户的组成员。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/validatepassword" title="Special:API帮助/validatepassword">validatepassword</a></span></dt>
+<dd>验证密码是否符合wiki的密码方针。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/watch" title="Special:API帮助/watch">watch</a></span></dt>
+<dd>从当前用户的监视列表中添加或移除页面。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/wikilove" title="Special:API帮助/wikilove">wikilove</a></span></dt>
+<dd>给另一用户维基有爱。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/avatardelete" title="Special:API帮助/avatardelete">avatardelete</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/avatarupload" title="Special:API帮助/avatarupload">avatarupload</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/categorytree" title="Special:API帮助/categorytree">categorytree</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​用于CategoryTree扩展的内部模块。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-check-sanity" title="Special:API帮助/cirrus-check-sanity">cirrus-check-sanity</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​搜尋索引中一段範圍頁面 ID 的正確性報告</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/cspreport" title="Special:API帮助/cspreport">cspreport</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​由浏览器使用以报告违反内容安全方针的内容。此模块应永不使用，除了在被CSP兼容的浏览器自动使用时。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolscompare" title="Special:API帮助/discussiontoolscompare">discussiontoolscompare</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​获取两个页面修订间留言更改的有关信息。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolspageinfo" title="Special:API帮助/discussiontoolspageinfo">discussiontoolspageinfo</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​返回初始化讨论工具所需的元数据。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolspreview" title="Special:API帮助/discussiontoolspreview">discussiontoolspreview</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​预览讨论页面上的留言。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/editcheckreferenceurl" title="Special:API帮助/editcheckreferenceurl">editcheckreferenceurl</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​Check the status of a URL for use as a reference.</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/scribunto-console" title="Special:API帮助/scribunto-console">scribunto-console</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​从Scribunto控制台提供XHR请求的内部模块。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/stashedit" title="Special:API帮助/stashedit">stashedit</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​在分享缓存中准备编辑。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/timedtext" title="Special:API帮助/timedtext">timedtext</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​提供被音轨元素所使用的字幕</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/visualeditor" title="Special:API帮助/visualeditor">visualeditor</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​从Parsoid服务返回页面的HTML5。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/visualeditoredit" title="Special:API帮助/visualeditoredit">visualeditoredit</a></span></dt>
+<dd><span class="apihelp-internal">内部的。</span>​保存一个HTML5页面至MediaWiki（通过Parsoid服务转换为wikitext）。</dd></dl></dd><dd class="info">以下值中的一个：<a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefiltercheckmatch" title="Special:API帮助/abusefiltercheckmatch"><span dir="ltr" lang="en">abusefiltercheckmatch</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefilterchecksyntax" title="Special:API帮助/abusefilterchecksyntax"><span dir="ltr" lang="en">abusefilterchecksyntax</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefilterevalexpression" title="Special:API帮助/abusefilterevalexpression"><span dir="ltr" lang="en">abusefilterevalexpression</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/abusefilterunblockautopromote" title="Special:API帮助/abusefilterunblockautopromote"><span dir="ltr" lang="en">abusefilterunblockautopromote</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/abuselogprivatedetails" title="Special:API帮助/abuselogprivatedetails"><span dir="ltr" lang="en">abuselogprivatedetails</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/acquiretempusername" title="Special:API帮助/acquiretempusername"><span dir="ltr" lang="en">acquiretempusername</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/block" title="Special:API帮助/block"><span dir="ltr" lang="en">block</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/changeauthenticationdata" title="Special:API帮助/changeauthenticationdata"><span dir="ltr" lang="en">changeauthenticationdata</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/changecontentmodel" title="Special:API帮助/changecontentmodel"><span dir="ltr" lang="en">changecontentmodel</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/checktoken" title="Special:API帮助/checktoken"><span dir="ltr" lang="en">checktoken</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-config-dump" title="Special:API帮助/cirrus-config-dump"><span dir="ltr" lang="en">cirrus-config-dump</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-mapping-dump" title="Special:API帮助/cirrus-mapping-dump"><span dir="ltr" lang="en">cirrus-mapping-dump</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-profiles-dump" title="Special:API帮助/cirrus-profiles-dump"><span dir="ltr" lang="en">cirrus-profiles-dump</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-settings-dump" title="Special:API帮助/cirrus-settings-dump"><span dir="ltr" lang="en">cirrus-settings-dump</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/clearhasmsg" title="Special:API帮助/clearhasmsg"><span dir="ltr" lang="en">clearhasmsg</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/clientlogin" title="Special:API帮助/clientlogin"><span dir="ltr" lang="en">clientlogin</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/compare" title="Special:API帮助/compare"><span dir="ltr" lang="en">compare</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/contributionheatmap" title="Special:API帮助/contributionheatmap"><span dir="ltr" lang="en">contributionheatmap</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/contributionscore" title="Special:API帮助/contributionscore"><span dir="ltr" lang="en">contributionscore</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/createaccount" title="Special:API帮助/createaccount"><span dir="ltr" lang="en">createaccount</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/delete" title="Special:API帮助/delete"><span dir="ltr" lang="en">delete</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsedit" title="Special:API帮助/discussiontoolsedit"><span dir="ltr" lang="en">discussiontoolsedit</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsfindcomment" title="Special:API帮助/discussiontoolsfindcomment"><span dir="ltr" lang="en">discussiontoolsfindcomment</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsgetsubscriptions" title="Special:API帮助/discussiontoolsgetsubscriptions"><span dir="ltr" lang="en">discussiontoolsgetsubscriptions</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolssubscribe" title="Special:API帮助/discussiontoolssubscribe"><span dir="ltr" lang="en">discussiontoolssubscribe</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolsthank" title="Special:API帮助/discussiontoolsthank"><span dir="ltr" lang="en">discussiontoolsthank</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/echocreateevent" title="Special:API帮助/echocreateevent"><span dir="ltr" lang="en">echocreateevent</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/echomarkread" title="Special:API帮助/echomarkread"><span dir="ltr" lang="en">echomarkread</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/echomarkseen" title="Special:API帮助/echomarkseen"><span dir="ltr" lang="en">echomarkseen</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/echomute" title="Special:API帮助/echomute"><span dir="ltr" lang="en">echomute</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/edit" title="Special:API帮助/edit"><span dir="ltr" lang="en">edit</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/emailuser" title="Special:API帮助/emailuser"><span dir="ltr" lang="en">emailuser</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/expandtemplates" title="Special:API帮助/expandtemplates"><span dir="ltr" lang="en">expandtemplates</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/feedcontributions" title="Special:API帮助/feedcontributions"><span dir="ltr" lang="en">feedcontributions</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/feedrecentchanges" title="Special:API帮助/feedrecentchanges"><span dir="ltr" lang="en">feedrecentchanges</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/feedwatchlist" title="Special:API帮助/feedwatchlist"><span dir="ltr" lang="en">feedwatchlist</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/filerevert" title="Special:API帮助/filerevert"><span dir="ltr" lang="en">filerevert</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/help" title="Special:API帮助/help"><span dir="ltr" lang="en">help</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/imagerotate" title="Special:API帮助/imagerotate"><span dir="ltr" lang="en">imagerotate</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/import" title="Special:API帮助/import"><span dir="ltr" lang="en">import</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/linkaccount" title="Special:API帮助/linkaccount"><span dir="ltr" lang="en">linkaccount</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/login" title="Special:API帮助/login"><span dir="ltr" lang="en">login</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/logout" title="Special:API帮助/logout"><span dir="ltr" lang="en">logout</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/managetags" title="Special:API帮助/managetags"><span dir="ltr" lang="en">managetags</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/mergehistory" title="Special:API帮助/mergehistory"><span dir="ltr" lang="en">mergehistory</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/moedisplayname" title="Special:API帮助/moedisplayname"><span dir="ltr" lang="en">moedisplayname</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/move" title="Special:API帮助/move"><span dir="ltr" lang="en">move</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/opensearch" title="Special:API帮助/opensearch"><span dir="ltr" lang="en">opensearch</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/options" title="Special:API帮助/options"><span dir="ltr" lang="en">options</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/paraminfo" title="Special:API帮助/paraminfo"><span dir="ltr" lang="en">paraminfo</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/parse" title="Special:API帮助/parse"><span dir="ltr" lang="en">parse</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/patrol" title="Special:API帮助/patrol"><span dir="ltr" lang="en">patrol</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/pollsubmitvote" title="Special:API帮助/pollsubmitvote"><span dir="ltr" lang="en">pollsubmitvote</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/protect" title="Special:API帮助/protect"><span dir="ltr" lang="en">protect</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/purge" title="Special:API帮助/purge"><span dir="ltr" lang="en">purge</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/query" title="Special:API帮助/query"><span dir="ltr" lang="en">query</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/removeauthenticationdata" title="Special:API帮助/removeauthenticationdata"><span dir="ltr" lang="en">removeauthenticationdata</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/resetpassword" title="Special:API帮助/resetpassword"><span dir="ltr" lang="en">resetpassword</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/revisiondelete" title="Special:API帮助/revisiondelete"><span dir="ltr" lang="en">revisiondelete</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/rollback" title="Special:API帮助/rollback"><span dir="ltr" lang="en">rollback</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/rsd" title="Special:API帮助/rsd"><span dir="ltr" lang="en">rsd</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/setnotificationtimestamp" title="Special:API帮助/setnotificationtimestamp"><span dir="ltr" lang="en">setnotificationtimestamp</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/setpagelanguage" title="Special:API帮助/setpagelanguage"><span dir="ltr" lang="en">setpagelanguage</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/spamblacklist" title="Special:API帮助/spamblacklist"><span dir="ltr" lang="en">spamblacklist</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/tag" title="Special:API帮助/tag"><span dir="ltr" lang="en">tag</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/templatedata" title="Special:API帮助/templatedata"><span dir="ltr" lang="en">templatedata</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/thank" title="Special:API帮助/thank"><span dir="ltr" lang="en">thank</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/titleblacklist" title="Special:API帮助/titleblacklist"><span dir="ltr" lang="en">titleblacklist</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/transcodereset" title="Special:API帮助/transcodereset"><span dir="ltr" lang="en">transcodereset</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/unblock" title="Special:API帮助/unblock"><span dir="ltr" lang="en">unblock</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/undelete" title="Special:API帮助/undelete"><span dir="ltr" lang="en">undelete</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/unlinkaccount" title="Special:API帮助/unlinkaccount"><span dir="ltr" lang="en">unlinkaccount</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/upload" title="Special:API帮助/upload"><span dir="ltr" lang="en">upload</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/userrights" title="Special:API帮助/userrights"><span dir="ltr" lang="en">userrights</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/validatepassword" title="Special:API帮助/validatepassword"><span dir="ltr" lang="en">validatepassword</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/watch" title="Special:API帮助/watch"><span dir="ltr" lang="en">watch</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/wikilove" title="Special:API帮助/wikilove"><span dir="ltr" lang="en">wikilove</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/avatardelete" title="Special:API帮助/avatardelete"><span dir="ltr" lang="en" class="apihelp-internal-value">avatardelete</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/avatarupload" title="Special:API帮助/avatarupload"><span dir="ltr" lang="en" class="apihelp-internal-value">avatarupload</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/categorytree" title="Special:API帮助/categorytree"><span dir="ltr" lang="en" class="apihelp-internal-value">categorytree</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/cirrus-check-sanity" title="Special:API帮助/cirrus-check-sanity"><span dir="ltr" lang="en" class="apihelp-internal-value">cirrus-check-sanity</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/cspreport" title="Special:API帮助/cspreport"><span dir="ltr" lang="en" class="apihelp-internal-value">cspreport</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolscompare" title="Special:API帮助/discussiontoolscompare"><span dir="ltr" lang="en" class="apihelp-internal-value">discussiontoolscompare</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolspageinfo" title="Special:API帮助/discussiontoolspageinfo"><span dir="ltr" lang="en" class="apihelp-internal-value">discussiontoolspageinfo</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/discussiontoolspreview" title="Special:API帮助/discussiontoolspreview"><span dir="ltr" lang="en" class="apihelp-internal-value">discussiontoolspreview</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/editcheckreferenceurl" title="Special:API帮助/editcheckreferenceurl"><span dir="ltr" lang="en" class="apihelp-internal-value">editcheckreferenceurl</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/scribunto-console" title="Special:API帮助/scribunto-console"><span dir="ltr" lang="en" class="apihelp-internal-value">scribunto-console</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/stashedit" title="Special:API帮助/stashedit"><span dir="ltr" lang="en" class="apihelp-internal-value">stashedit</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/timedtext" title="Special:API帮助/timedtext"><span dir="ltr" lang="en" class="apihelp-internal-value">timedtext</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/visualeditor" title="Special:API帮助/visualeditor"><span dir="ltr" lang="en" class="apihelp-internal-value">visualeditor</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/visualeditoredit" title="Special:API帮助/visualeditoredit"><span dir="ltr" lang="en" class="apihelp-internal-value">visualeditoredit</span></a></dd><dd class="info">默认：help</dd><dt><span dir="ltr" lang="en" id="main:format">format</span></dt><dd class="description"><p>输出的格式。
+</p><dl><dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/json" title="Special:API帮助/json">json</a></span></dt>
+<dd>输出数据为JSON格式。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/jsonfm" title="Special:API帮助/jsonfm">jsonfm</a></span></dt>
+<dd>输出数据为JSON格式（使用HTML格式显示）。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/none" title="Special:API帮助/none">none</a></span></dt>
+<dd>不输出任何东西。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/php" title="Special:API帮助/php">php</a></span></dt>
+<dd>输出数据为序列化PHP格式。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/phpfm" title="Special:API帮助/phpfm">phpfm</a></span></dt>
+<dd>输出数据为序列化PHP格式（使用HTML格式显示）。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/rawfm" title="Special:API帮助/rawfm">rawfm</a></span></dt>
+<dd>输出数据为JSON格式，包含调试元素（使用HTML格式显示）。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/xml" title="Special:API帮助/xml">xml</a></span></dt>
+<dd>输出数据为XML格式。</dd>
+<dt><span dir="ltr" lang="en"><a href="/Special:API%E5%B8%AE%E5%8A%A9/xmlfm" title="Special:API帮助/xmlfm">xmlfm</a></span></dt>
+<dd>输出数据为XML格式（使用HTML格式显示）。</dd></dl></dd><dd class="info">以下值中的一个：<a href="/Special:API%E5%B8%AE%E5%8A%A9/json" title="Special:API帮助/json"><span dir="ltr" lang="en">json</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/jsonfm" title="Special:API帮助/jsonfm"><span dir="ltr" lang="en">jsonfm</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/none" title="Special:API帮助/none"><span dir="ltr" lang="en">none</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/php" title="Special:API帮助/php"><span dir="ltr" lang="en">php</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/phpfm" title="Special:API帮助/phpfm"><span dir="ltr" lang="en">phpfm</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/rawfm" title="Special:API帮助/rawfm"><span dir="ltr" lang="en">rawfm</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/xml" title="Special:API帮助/xml"><span dir="ltr" lang="en">xml</span></a>、​<a href="/Special:API%E5%B8%AE%E5%8A%A9/xmlfm" title="Special:API帮助/xmlfm"><span dir="ltr" lang="en">xmlfm</span></a></dd><dd class="info">默认：jsonfm</dd><dt><span dir="ltr" lang="en" id="main:maxlag">maxlag</span></dt><dd class="description"><p>最大延迟可被用于MediaWiki安装于数据库复制集中。要保存导致更多网站复制延迟的操作，此参数可使客户端等待直到复制延迟少于指定值时。万一发生过多延迟，错误代码<samp>maxlag</samp>会返回消息，例如<samp>等待$host中：延迟$lag秒</samp>。<br>参见<a href="https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:Maxlag_parameter" class="extiw" title="mw:Special:MyLanguage/Manual:Maxlag parameter">手册:Maxlag参数</a>以获取更多信息。
+</p></dd><dd class="info">类型：整数</dd><dt><span dir="ltr" lang="en" id="main:smaxage">smaxage</span></dt><dd class="description"><p>设置<code>s-maxage</code> HTTP缓存控制头至这些秒。错误不会缓存。
+</p></dd><dd class="info">类型：整数</dd><dd class="info">值必须不少于0。</dd><dd class="info">默认：0</dd><dt><span dir="ltr" lang="en" id="main:maxage">maxage</span></dt><dd class="description"><p>设置<code>max-age</code> HTTP缓存控制头至这些秒。错误不会缓存。
+</p></dd><dd class="info">类型：整数</dd><dd class="info">值必须不少于0。</dd><dd class="info">默认：0</dd><dt><span dir="ltr" lang="en" id="main:assert">assert</span></dt><dd class="description"><p>如果设置为<kbd>user</kbd>，则验证用户是否已登录（包括以临时用户身份登录）；如果设置为<kbd>anon</kbd>，则验证用户是否<em>未</em>登录；如果设置为<kbd>bot</kbd>，则验证用户是否拥有机器人用户权限。
+</p></dd><dd class="info">以下值中的一个：anon、​bot、​user</dd><dt><span dir="ltr" lang="en" id="main:assertuser">assertuser</span></dt><dd class="description"><p>验证当前用户是命名用户。
+</p></dd><dd class="info">类型：通过 用户名和​临时用户 中任意一种方式指定的用户</dd><dt><span dir="ltr" lang="en" id="main:requestid">requestid</span></dt><dd class="description"><p>任何在此提供的值将包含在响应中。可以用以区别请求。
+</p></dd><dt><span dir="ltr" lang="en" id="main:servedby">servedby</span></dt><dd class="description"><p>包含保存结果请求的主机名。
+</p></dd><dd class="info">类型：布尔型 (<a href="/Special:API%E5%B8%AE%E5%8A%A9/main#main/datatype/boolean" title="Special:API帮助/main">详情</a>)</dd><dt><span dir="ltr" lang="en" id="main:curtimestamp">curtimestamp</span></dt><dd class="description"><p>在结果中包括当前时间戳。
+</p></dd><dd class="info">类型：布尔型 (<a href="/Special:API%E5%B8%AE%E5%8A%A9/main#main/datatype/boolean" title="Special:API帮助/main">详情</a>)</dd><dt><span dir="ltr" lang="en" id="main:responselanginfo">responselanginfo</span></dt><dd class="description"><p>包含在结果中用于<var>uselang</var>和<var>errorlang</var>的语言。
+</p></dd><dd class="info">类型：布尔型 (<a href="/Special:API%E5%B8%AE%E5%8A%A9/main#main/datatype/boolean" title="Special:API帮助/main">详情</a>)</dd><dt><span dir="ltr" lang="en" id="main:origin">origin</span></dt><dd class="description"><p>使用跨域AJAX请求(CORS)访问API时，请将其设置为来源域。这必须包括在任何预检请求中，因此必须是请求URI（而不是POST正文）的一部分。
+</p><p>对于已验证的请求，这必须正确匹配<code>Origin</code>标头中的来源之一，因此必须将其设置为类似<kbd><a target="_blank" rel="nofollow noreferrer noopener" class="external free" href="https://zh.wikipedia.org">https://zh.wikipedia.org</a></kbd>或<kbd><a target="_blank" rel="nofollow noreferrer noopener" class="external free" href="https://meta.wikimedia.org">https://meta.wikimedia.org</a></kbd>的值。如果此参数与<code>Origin</code>标头不匹配，将返回403响应。如果此参数与<code>Origin</code>标头匹配并且来源被允许，则将设置<code>Access-Control-Allow-Origin</code>和<code>Access-Control-Allow-Credentials</code>标头。
+</p><p>对于未验证的请求，请指定值<kbd>*</kbd>。这将导致<code>Access-Control-Allow-Origin</code>标头被设置，但<code>Access-Control-Allow-Credentials</code>将为<code>false</code>，且所有用户特定数据将受限制。
+</p></dd><dt><span dir="ltr" lang="en" id="main:uselang">uselang</span></dt><dd class="description"><p>用于消息翻译的语言。<kbd><a href="/Special:API%E5%B8%AE%E5%8A%A9/query%2Bsiteinfo" title="Special:API帮助/query+siteinfo">action=query&amp;meta=siteinfo&amp;siprop=languages</a></kbd>可返回语言代码列表。您可以指定<kbd>user</kbd>以使用当前用户的语言设置，或指定<kbd>content</kbd>以使用此wiki的内容语言。
+</p></dd><dd class="info">默认：user</dd><dt><span dir="ltr" lang="en" id="main:variant">variant</span></dt><dd class="description"><p>语言变体。仅当基础语言支持变体转换时起作用。
+</p></dd><dt><span dir="ltr" lang="en" id="main:errorformat">errorformat</span></dt><dd class="description"><p>用于警告和错误文本输出的格式
+</p><dl><dt><span dir="ltr" lang="en">plaintext</span></dt>
+<dd>包括HTML标签的wikitext被移除并且实体被替换。</dd>
+<dt><span dir="ltr" lang="en">wikitext</span></dt>
+<dd>未解析的wikitext。</dd>
+<dt><span dir="ltr" lang="en">html</span></dt>
+<dd>HTML</dd>
+<dt><span dir="ltr" lang="en">raw</span></dt>
+<dd>消息的键和参数。</dd>
+<dt><span dir="ltr" lang="en">none</span></dt>
+<dd>没有文本输出，仅有错误代码。</dd>
+<dt><span dir="ltr" lang="en">bc</span></dt>
+<dd>MediaWiki 1.29之前使用的格式。<var>errorlang</var>和<var>errorsuselocal</var>会被忽略。</dd></dl></dd><dd class="info">以下值中的一个：bc、​html、​none、​plaintext、​raw、​wikitext</dd><dd class="info">默认：bc</dd><dt><span dir="ltr" lang="en" id="main:errorlang">errorlang</span></dt><dd class="description"><p>用于警告和错误的语言。<kbd><a href="/Special:API%E5%B8%AE%E5%8A%A9/query%2Bsiteinfo" title="Special:API帮助/query+siteinfo">action=query&amp;meta=siteinfo&amp;siprop=languages</a></kbd>返回语言代码的列表。指定<kbd>content</kbd>以使用此wiki的内容语言，或指定<kbd>uselang</kbd>以使用与<var>uselang</var>参数相同的值。
+</p></dd><dd class="info">默认：uselang</dd><dt><span dir="ltr" lang="en" id="main:errorsuselocal">errorsuselocal</span></dt><dd class="description"><p>如果指定，错误文本将使用来自MediaWiki命名空间的本地自定义消息。
+</p></dd><dd class="info">类型：布尔型 (<a href="/Special:API%E5%B8%AE%E5%8A%A9/main#main/datatype/boolean" title="Special:API帮助/main">详情</a>)</dd></dl></div>
+<div class="apihelp-block apihelp-examples"><div class="apihelp-block-head">例子：</div><dl><dt>主模块帮助。</dt><dd><a href="/api.php?action=help" dir="ltr" rel="nofollow">api.php?action=help</a> <a href="/Special:API%E6%B2%99%E7%9B%92#action=help"><small>[在沙盒中打开]</small></a></dd><dt>一个页面中的所有帮助。</dt><dd><a href="/api.php?action=help&amp;recursivesubmodules=1" dir="ltr" rel="nofollow">api.php?action=help&amp;recursivesubmodules=1</a> <a href="/Special:API%E6%B2%99%E7%9B%92#action=help&amp;recursivesubmodules=1"><small>[在沙盒中打开]</small></a></dd></dl></div>
+<div class="apihelp-block apihelp-permissions"><div class="apihelp-block-head">权限：</div><dl><dt>apihighlimits</dt><dd>在API查询中使用更高的上限（慢查询：500；快查询：5000）。慢查询的限制也适用于多值参数。</dd><dd>授予：bot和​sysop</dd></dl></div>
+
+<h3 class="apihelp-header" id="main/datatypes">数据类型</h3><p>MediaWiki的输入应该是NFC规范化的UTF-8。MediaWiki可能会尝试转换其他输入，但这可能会导致某些操作（例如 <a href="/Special:API%E5%B8%AE%E5%8A%A9/edit" title="Special:API帮助/edit">编辑</a>带有MD5检查）失败。
+</p><p>采用多个值的参数通常与使用管道字符分隔的值一起提交，例如<kbd>param=value1|value2</kbd>或<kbd>param=value1%7Cvalue2</kbd>。如果值必须包含竖线字符，请使用U+001F（单位分隔符）作为分隔符 <i>并且</i> 用U+001F作为该值的前缀，例如<kbd>param=%1Fvalue1%1Fvalue2</kbd>。
+</p><p>API请求中的一些参数类型需要进一步说明：
+</p><dl><dt id="main/datatype/boolean">boolean</dt><dd><p>布尔参数的工作方式类似于HTML复选框：如果指定了参数，无论值如何，它都被认为是true。对于假值，完全省略参数。
+</p></dd><dt id="main/datatype/expiry">expiry</dt><dd><p>到期时间。可以是相对时间（例如：<kbd>5 months</kbd> 或 <kbd>2 weeks</kbd>）或是绝对时间（例如：<kbd>2014-09-18T12:34:56Z</kbd>）。如果要无期限，请使用 <kbd>infinite</kbd>、<kbd>indefinite</kbd>、<kbd>infinity</kbd>、或 <kbd>never</kbd>。
+</p></dd><dt id="main/datatype/timestamp">timestamp</dt><dd><p>时间戳可以用多种格式指定，详情参见<a href="https://www.mediawiki.org/wiki/Special:MyLanguage/Timestamp" class="extiw" title="mw:Special:MyLanguage/Timestamp">mediawiki.org上记录的时间戳库输入格式</a>。建议使用ISO 8601日期和时间：<kbd><var>2001</var>-<var>01</var>-<var>15</var>T<var>14</var>:<var> 56</var>:<var>00</var>Z</kbd>。此外，字符串<kbd>now</kbd>可用于指定当前时间戳。
+</p></dd></dl>
+<h3 class="apihelp-header" id="main/templatedparams">模板参数</h3><p>模板参数支持API模块需要为每个其他参数赋值的情况。例如如果有API模块请求水果，它会有参数<var>水果</var>指定请求的水果，以及模板参数<var>{水果}-数量</var>以指定每种水果请求多少。需要1个苹果、5个香蕉和20个草莓的API客户端可以做出类似<kbd>水果=苹果|香蕉|草莓&amp;苹果-数量=1&amp;香蕉-数量=5&amp;草莓-数量=20</kbd>的请求。
+</p>
+<h3 class="apihelp-header" id="main/credits">制作人员</h3><p>API 开发人员：
+</p>
+<ul><li>Yuri Astrakhan（创建者，2006年9月~2007年9月的开发组领导）</li>
+<li>Roan Kattouw（2007年9月~2009年的开发组领导）</li>
+<li>Victor Vasiliev</li>
+<li>Bryan Tong Minh</li>
+<li>Sam Reed</li>
+<li>Brad Jorsch（2013年~2020年的开发组领导）</li></ul>
+<p>请将您的评论、建议和问题发送至<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a0cdc5c4c9c1d7c9cbc98dc1d0c9e0ccc9d3d4d38ed7c9cbc9cdc5c4c9c18ecfd2c7">[email&#160;protected]</a>，或提交错误请求至https://phabricator.wikimedia.org/。
+</p>
+<div class="printfooter" data-nosnippet="" lang="zh-Hans-CN" dir="ltr">检索自“<a dir="ltr" href="https://mzh.moegirl.org.cn/Special:API帮助">https://mzh.moegirl.org.cn/Special:API帮助</a>”</div></div>
+	</div>
+</div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>(RLQ=window.RLQ||[]).push(function(){mw.log.warn("This page is using the deprecated ResourceLoader module \"mediawiki.skinning.interface\".\n[1.43] The use of the `interface-message-box` feature with SkinModule is deprecated in favor of CodexModule. Please remove this feature.More information can be found at [[mw:Manual:ResourceLoaderSkinModule]]. ");mw.config.set({"wgBackendResponseTime":332});});</script>
+<script id="mw-moderation-patch-edit-links">;(window.RLQ ||= []).push([
+  'mediawiki.base',
+  () => {
+    mw.hook('wikipage.content').add(() => {
+      const editLinks = document.querySelectorAll('a#ca-edit, #ca-edit a')
+      if (!editLinks.length) {
+        return
+      }
+      editLinks.forEach((i) => {
+        const url = new URL(i.href)
+        url.searchParams.delete('oldid')
+        i.href = url.href
+      })
+    })
+  },
+])</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"72589661a2ec44bc8330d7cd848d38ae","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

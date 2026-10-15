@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-15T14:35:26.933Z",
+  "report": [
+    {
+      "title": "博丽灵梦",
+      "source": {
+        "kind": "wiki",
+        "site": "萌娘百科",
+        "siteId": "moegirl",
+        "url": "https://zh.moegirl.org.cn/%E5%8D%9A%E4%B8%BD%E7%81%B5%E6%A2%A6",
+        "revid": null,
+        "fetchedAt": "2026-10-15T14:35:26.922Z"
+      },
+      "counts": {
+        "name": 3,
+        "aliases": 7,
+        "race": 1,
+        "abilities": 32,
+        "work": 1,
+        "tags": 2,
+        "location": 3,
+        "affiliation": 1,
+        "relationships": 12,
+        "summary": 11,
+        "appearance": 37,
+        "personality": 10,
+        "history": 22,
+        "setting": 1
+      },
+      "sections": 36,
+      "flags": {
+        "ability": true,
+        "relationships": true,
+        "personality": true,
+        "summary": true,
+        "race": true
+      }
+    },
+    {
+      "title": "博丽灵梦",
+      "source": {
+        "kind": "wiki",
+        "site": "THBWiki",
+        "siteId": "wiki:https://thwiki.cc/api.php",
+        "url": "https://thwiki.cc/%E5%8D%9A%E4%B8%BD%E7%81%B5%E6%A2%A6",
+        "revid": 979015,
+        "fetchedAt": "2026-10-15T14:35:26.931Z"
+      },
+      "counts": {
+        "name": 1,
+        "aliases": 2,
+        "race": 1,
+        "occupation": 1,
+        "abilities": 28,
+        "summary": 13,
+        "appearance": 30,
+        "relationships": 6,
+        "plot": 15,
+        "setting": 2
+      },
+      "sections": 12,
+      "flags": {
+        "ability": true,
+        "relationships": true,
+        "personality": false,
+        "summary": true,
+        "race": true
+      }
+    }
+  ]
+}
