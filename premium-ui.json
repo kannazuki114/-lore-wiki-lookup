@@ -1,0 +1,11 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["src", "style.css"],
+  "locale": "zh-CN",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast", "CRUD"],
+  "ownership": { "Select/Listbox": "native" },
+  "requiredCommands": ["build", "unit", "browser", "ui"],
+  "commands": { "build": "node tools/bundle.mjs", "unit": "node --test test/*.test.mjs", "browser": "node tools/test-browser.mjs", "ui": "node tools/test-ui.mjs" },
+  "evidence": { "crudFullFlow": "tools/test-browser.mjs", "failurePaths": "tools/test-ui.mjs" }
+}

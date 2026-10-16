@@ -1,8 +1,8 @@
 import { MOEGIRL, validateSource } from "./sources.js";
-import { apiParameters, normalizeResponse } from "./mediawiki.js";
+import { readMediaWiki } from "./mediawiki.js";
 
 export const DEFAULTS = { mode: "bridge", bridgeUrl: "http://127.0.0.1:39765", timeoutMs: 20000, cacheMinutes: 30, activeSource: "moegirl", sources: [MOEGIRL], aliases: [] };
-export const MOEGIRL_API = "https://mzh.moegirl.org.cn/api.php";
+export const MOEGIRL_API = MOEGIRL.apiUrl;
 
 export function createProvider({ settings = {}, source, token = "", storage, signal, fetchFn = globalThis.fetch } = {}) {
     const config = { ...DEFAULTS, ...settings };
@@ -10,7 +10,7 @@ export function createProvider({ settings = {}, source, token = "", storage, sig
     async function request(operation, args = {}) {
         if (signal?.aborted) throw new DOMException("查询已取消", "AbortError");
         if (config.mode === "offline") throw new Error("当前为离线模式");
-        const key = JSON.stringify(["v2", source, config.bridgeUrl, operation, args]);
+        const key = JSON.stringify(["v4", source, config.bridgeUrl, operation, args]);
         const cache = await storage?.get("wiki-cache") || {};
         const old = cache[key];
         if (old && Date.now() - old.at < config.cacheMinutes * 60000) return { ...old.value, _cache: "fresh", _fetchedAt: old.at };
@@ -20,21 +20,24 @@ export function createProvider({ settings = {}, source, token = "", storage, sig
         if (signal?.aborted) controller.abort();
         const timer = setTimeout(() => controller.abort(), Math.max(1000, config.timeoutMs));
         try {
-            let response;
+            let value;
             if (source.transport === "bridge") {
                 const base = new URL(config.bridgeUrl);
                 if (!["http:", "https:"].includes(base.protocol) || base.username || base.password) throw new Error("桥接地址必须是 HTTP(S) 地址");
                 if (!token) throw new Error("请填写桥接服务启动时显示的配对令牌（不是萌百密码）");
-                response = await fetchFn(new URL("/query", base), { method: "POST", headers: { "Content-Type": "application/json", "X-Lore-Token": token }, body: JSON.stringify({ operation, ...args, ...(source.id !== "moegirl" ? { source: { apiUrl: source.apiUrl } } : {}) }), signal: controller.signal, credentials: "omit" });
+                const response = await fetchFn(new URL("/query", base), { method: "POST", headers: { "Content-Type": "application/json", "X-Lore-Token": token }, body: JSON.stringify({ operation, ...args, ...(source.id !== "moegirl" ? { source: { apiUrl: source.apiUrl } } : {}) }), signal: controller.signal, credentials: "omit" });
+                if (!response.ok) throw new Error("Wiki 请求失败 HTTP " + response.status);
+                value = await response.json();
             } else {
-                const url = new URL(source.apiUrl);
-                url.search = new URLSearchParams(apiParameters(operation, args)).toString();
-                response = await fetchFn(url, { signal: controller.signal, credentials: "omit" });
+                value = await readMediaWiki(operation, args, async params => {
+                    const url = new URL(source.apiUrl);
+                    url.search = new URLSearchParams(params).toString();
+                    const response = await fetchFn(url, { signal: controller.signal, credentials: "omit" });
+                    if (!response.ok) throw new Error("Wiki 请求失败 HTTP " + response.status);
+                    return response.json();
+                }, source.id === "moegirl");
             }
-            if (!response.ok) throw new Error("Wiki 请求失败 HTTP " + response.status + (response.status === 401 ? "，请检查访问权限或配对令牌" : ""));
-            const raw = await response.json();
             if (signal?.aborted) throw new DOMException("查询已取消", "AbortError");
-            const value = source.transport === "direct" ? normalizeResponse(operation, raw, args) : raw;
             if (value.error || value.errors) throw new Error(String(value.error?.message || value.error?.info || value.error || "Wiki API 返回错误"));
             const at = Date.now();
             cache[key] = { at, value };

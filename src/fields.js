@@ -1,6 +1,6 @@
 // Explicit aliases only: page prose is never silently promoted into structured facts.
 export const FIELDS = [
-    { id: "name", label: "名称", aliases: ["姓名", "本名", "名字", "中文名", "人物名", "译名", "name"] },
+    { id: "name", label: "名称", aliases: ["姓名", "本名", "原名", "名字", "中文名", "人物名", "译名", "name"] },
     { id: "aliases", label: "别名", aliases: ["别称", "別名", "其他名字", "昵称", "称号", "外号", "日文名", "英文名", "alias", "aliases", "nickname"] },
     { id: "work", label: "作品", aliases: ["所属作品", "登场作品", "出身作品", "初登场作品", "首次登场", "系列", "series", "franchise"] },
     { id: "version", label: "版本", aliases: ["世界线", "世界線", "路线"] },
@@ -17,12 +17,13 @@ export const FIELDS = [
     { id: "plot", label: "剧情", aliases: ["劇情", "故事", "故事梗概", "剧情简介", "剧情梗概", "故事介绍", "登场剧情", "plot", "story", "synopsis"] },
     { id: "setting", label: "设定", aliases: ["設定", "背景设定", "世界观", "世界觀", "设定文档", "一设资料", "setting"] },
     { id: "chapter", label: "篇章", aliases: ["章节", "章節", "所属篇章"] },
-    { id: "location", label: "地点", aliases: ["地點", "发生地点", "活动范围", "活动地区", "出身地区", "地区", "location", "residence"] },
+    { id: "location", label: "地点", aliases: ["地點", "住所", "居住地", "发生地点", "活动范围", "活动地区", "出身地区", "地区", "location", "residence"] },
     { id: "participants", label: "参与者", aliases: ["参与人物", "登场人物"] },
     { id: "time", label: "时间", aliases: ["时间线", "时间轴", "年表", "发生时间"] },
     { id: "summary", label: "简介", aliases: ["簡介", "介绍", "概述", "概要", "角色介绍", "overview", "introduction"] },
     { id: "tags", label: "萌属性", aliases: ["萌屬性", "标签", "属性", "萌点"] },
-    { id: "categories", label: "分类", aliases: ["分類", "category"] }
+    { id: "categories", label: "分类", aliases: ["分類", "category"] },
+    { id: "content", label: "页面原文", aliases: ["正文", "原文", "content"] }
 ];
 
 export function normalize(value) {

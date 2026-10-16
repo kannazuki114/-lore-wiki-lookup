@@ -55,7 +55,7 @@ test('作品绑定检索范围、未知归属需确认、明确选择后可读�
     const parsePage = () => ({ title: '角色', fields: { personality: [{ value: '谨慎' }] }, source: { site: '萌娘百科' } });
     const engine = createEngine({ provider, parsePage });
     const result = await engine.run({ query: '角色', work: '作品A' });
-    assert.equal(calls[0][1].query, '角色 作品A');
+    assert.equal(calls[0][1].query, '角色'); // Work is verified from source fields, not forced into the name query.
     assert.equal(result.results.length, 0); assert.equal(result.choices.length, 1);
     assert.equal((await engine.run({ mode: 'page', query: '角色', work: '作品A', resolveExact: true })).results.length, 1);
 });

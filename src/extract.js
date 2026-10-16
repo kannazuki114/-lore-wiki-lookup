@@ -20,6 +20,9 @@ export function extractPage(page, categories = [], parser = new DOMParser()) {
         if (!fields[id].some(v => v.value === value)) fields[id].push({ value, section, url: url + (anchor ? "#" + encodeURIComponent(anchor) : "") });
     };
     add("name", title, "页面标题");
+    const readable = root.cloneNode(true);
+    readable.querySelectorAll("p,li,tr,h1,h2,h3,h4,h5,h6,br,dt,dd").forEach(node => { node.before("\n"); node.after("\n"); });
+    for (const line of readable.textContent.split(/\n+/)) add("content", line.replace(/\s+/g, " ").trim(), "页面原文（未归类）");
     const addCell = (id, node, label) => {
         const valueCell = node.cloneNode(true);
         valueCell.querySelectorAll("br").forEach(n => n.replaceWith("\n"));
@@ -51,6 +54,19 @@ export function extractPage(page, categories = [], parser = new DOMParser()) {
         const id = fieldId(clean(term)), next = term.nextElementSibling;
         if (id && next?.tagName === "DD") addCell(id, next, clean(term));
     }
+    // TextExtracts keeps explicit labelled paragraphs even when tables are omitted.
+    // Only a short, recognized label before a colon establishes a field.
+    let paragraphField = null;
+    for (const node of root.querySelectorAll("h2,h3,h4,h5,h6,p")) {
+        if (/^H/.test(node.tagName)) { paragraphField = null; continue; }
+        const text = clean(node), match = /^([^：:]{1,20})[：:]\s*(.*)$/.exec(text);
+        const id = match && fieldId(match[1]);
+        if (id) {
+            paragraphField = match[2] ? null : { id, label: match[1] };
+            if (match[2]) for (const value of id === "aliases" ? match[2].split(/[、，；;]/) : [match[2]]) add(id, value, "正文标注 · " + match[1]);
+        } else if (match && node.querySelector("b,strong")) paragraphField = null;
+        else if (paragraphField && text) add(paragraphField.id, text, "正文标注 · " + paragraphField.label);
+    }
     const stack = [];
     const sections = [];
     for (const node of root.querySelectorAll("h2,h3,h4,h5,h6,p,li,dt,dd")) {
@@ -75,5 +91,5 @@ export function extractPage(page, categories = [], parser = new DOMParser()) {
         const title = typeof c === "string" ? c : c.title;
         if (title && !c.hidden) add("categories", title.replace(/^(Category|分类|分類):/i, ""), "页面分类");
     }
-    return { id: site.id + ":" + normalize(title), title, fields, sections, source: { kind: "wiki", site: site.name, siteId: site.id, url, revid: page.revid ?? null, fetchedAt: new Date().toISOString() } };
+    return { id: site.id + ":" + normalize(title), title, fields, sections, source: { kind: "wiki", site: site.name, siteId: site.id, url, revid: page.revid ?? null, contentMethod: page.contentMethod || "parse", fetchedAt: new Date().toISOString() } };
 }

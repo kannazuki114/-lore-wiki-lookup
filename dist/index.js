@@ -1,6 +1,6 @@
 /*! 人物与剧情 Wiki 查询 —— 单文件打包产物（经典脚本，无 import/export）。
  *  由 tools/bundle.mjs 生成；请勿直接修改本文件，改 src/ 后重新打包。
- *  模块数：15，import：29 处，export：60 处。
+ *  模块数：15，import：30 处，export：64 处。
  */
 (function () {
 'use strict';
@@ -139,6 +139,17 @@ __def("src/engine.js", function (__req) {
 const { FIELDS, fieldId, normalize, parseQuery, selectFields, matchFilters, projectRecord } = __req("src/fields.js");
 const { extractPage } = __req("src/extract.js");
 const { resolveAlias, workMatch } = __req("src/resolver.js");
+const { titleFromUrl } = __req("src/sources.js");
+
+// Keep the Wiki's relevance order within each name-match tier.
+function rankNames(rows, input) {
+    const key = normalize(input);
+    const score = row => Math.max(0, ...[row.title, ...(row.fields?.aliases || []).map(v => v.value)].map(value => {
+        const name = normalize(value).replace(/^(category|分类|分類):/, "");
+        return !key ? 0 : name === key ? 3 : name.startsWith(key) ? 2 : name.includes(key) ? 1 : 0;
+    }));
+    return [...rows].sort((a, b) => score(b) - score(a));
+}
 
 function validateOffline(input) {
     if (input?.schemaVersion !== 1 || !Array.isArray(input.entries)) throw new Error("需要 schemaVersion: 1 和 entries 数组");
@@ -164,9 +175,26 @@ function validateOffline(input) {
 
 function createEngine({ provider, offline = [], parsePage = extractPage, aliases = [] }) {
     async function run(args = {}) {
-        const mode = args.mode || "search";
-        if (!["search", "page", "category", "categories", "subcategories"].includes(mode)) throw new Error("未知检索模式");
-        const query = parseQuery(args.query);
+        const fromUrl = /^https?:\/\//i.test(String(args.query || "").trim());
+        const mode = fromUrl ? "page" : args.mode || "search";
+        if (!["search", "series", "page", "category", "categories", "subcategories"].includes(mode)) throw new Error("未知检索模式");
+        const query = fromUrl ? { text: titleFromUrl(args.query, provider.source), filters: [] } : parseQuery(args.query);
+        if (mode === "series" || mode === "search" && /^(?:查字段|字段检索|字段)\s+/.test(String(args.query).trim())) {
+            if (!query.text) throw new Error("请输入作品或分类名称");
+            let categories = [], warning = "";
+            try { categories = rankNames((await provider.request("search-categories", { query: query.text, limit: 8 })).items || [], query.text); }
+            catch (error) { warning = "分类名称读取失败：" + error.message; }
+            const exact = categories.filter(c => normalize(c.title.replace(/^(Category|分类|分類):/i, "")) === normalize(query.text.replace(/^(Category|分类|分類):/i, "")));
+            const partial = categories.filter(c => normalize(c.title).includes(normalize(query.text)));
+            const hits = exact.length ? exact : partial;
+            if (hits.length > 1) return { mode, query, fields: selectFields(args.fields), results: [], rejected: [], choices: [], navigation: hits.map(c => ({ title: c.title, type: "category" })), warnings: warning ? [warning] : [], onlineState: "ok", scanned: hits.length, cursor: null, notice: "匹配到多个分类，请选择后查看成员。", aliasHints: [], matchMode: "category" };
+            const target = hits[0];
+            const filters = query.filters.map(f => f.field + (f.op === "eq" ? "=" : "~") + JSON.stringify(f.value)).join(" ");
+            const result = await run({ ...args, mode: target ? "category" : "search", query: [target ? target.title : query.text, filters].filter(Boolean).join(" ") });
+            return { ...result, matchMode: target ? "category" : "name", matchedCategory: target?.title,
+                warnings: [...(warning ? [warning] : []), ...result.warnings],
+                notice: (target ? "已匹配分类 " + target.title + "，按分类成员检索。" : "未匹配到分类，已退回名称搜索。") + result.notice };
+        }
         const originalText = query.text;
         const work = String(args.work || "").trim();
         const sourceId = provider.source?.id || "moegirl";
@@ -209,14 +237,14 @@ function createEngine({ provider, offline = [], parsePage = extractPage, aliases
                 if (mode === "page") candidates.push({ title: query.text });
                 else {
                     // Search is only candidate discovery, never proof of a field match.
-                    const searchText = [...new Set([query.text, work, ...query.filters.map(f => f.value)].filter(Boolean))].join(" ");
+                    const searchText = query.text || [...new Set([work, ...query.filters.map(f => f.value)].filter(Boolean))].join(" ");
                     const response = await provider.request(mode === "category" ? "get-category-members" : "search", {
                         query: mode === "category" ? query.text : searchText, limit, ...(continuation ? { continueToken: continuation } : {})
                     });
                     if (response._warning) warnings.push(response._warning);
                     const rows = mode === "category" ? response.members : response.items;
                     if (!Array.isArray(rows)) throw new Error("Wiki 返回格式不匹配");
-                    candidates.push(...rows.filter(r => typeof r.title === "string").slice(0, limit));
+                    candidates.push(...rankNames(rows.filter(r => typeof r.title === "string"), mode === "category" ? "" : query.text).slice(0, limit));
                     nextOnline = response.pagination?.continueToken || null;
                     if (mode === "category" && !candidates.length) warnings.push("该分类本批没有直接页面；可展开子分类，或搜索分类名称确认名称。");
                 }
@@ -224,7 +252,18 @@ function createEngine({ provider, offline = [], parsePage = extractPage, aliases
                     try {
                         const page = await provider.request("get-page", { query: candidate.title });
                         if (page.disambiguation) {
-                            choices.push(...(page.links || []).filter(l => l.title).slice(0, 30).map(l => ({ title: l.title, reason: "消歧义页面候选", sourceId })));
+                            let links = page.links || [], reason = "消歧义页面中的链接，请选择具体条目";
+                            if (!links.length) {
+                                try {
+                                    const response = await provider.request("get-links", { query: page.title || candidate.title, limit: 500 });
+                                    links = response.links || [];
+                                    if (response.pagination?.hasMore) warnings.push("消歧链接超过本批上限，请打开来源页面核对其余候选。");
+                                }
+                                catch { /* Some custom Wikis do not expose links; search remains a labelled fallback. */ }
+                            }
+                            if (!links.length) { links = (await provider.request("search", { query: candidate.title, limit: 8 })).items || []; reason = "同名搜索候选，请核对来源"; }
+                            const ranked = rankNames(rankNames(links.filter(l => l.title && l.title !== page.title), page.title || candidate.title), candidate.title);
+                            choices.push(...ranked.map(l => ({ title: l.title, reason, sourceId })));
                             warnings.push(candidate.title + " 是消歧义页面，请选择具体条目。");
                             continue;
                         }
@@ -247,7 +286,16 @@ function createEngine({ provider, offline = [], parsePage = extractPage, aliases
                         const verdict = matchFilters(record, query.filters);
                         if (verdict.matches) results.push(projectRecord(record, selected));
                         else rejected.push({ title: record.title, ...verdict });
-                    } catch (e) { warnings.push(candidate.title + "：" + e.message); onlineState = "partial"; }
+                    } catch (e) {
+                        warnings.push(candidate.title + "：" + e.message); onlineState = "partial";
+                        if (mode === "page" && e.message.includes("页面不存在")) {
+                            try {
+                                let response = await provider.request("search", { query: candidate.title, limit: 5 });
+                                if (!response.items?.length && /[·・]/.test(candidate.title)) response = await provider.request("search", { query: candidate.title.split(/[·・]/)[0].slice(0, 3), limit: 5 });
+                                choices.push(...(response.items || []).filter(r => r.title !== candidate.title).map(r => ({ title: r.title, reason: "原名称不存在，可能相关的页面（请手动选择）", sourceId })));
+                            } catch { /* Keep the original failure visible if suggestions also fail. */ }
+                        }
+                    }
                 }
             } catch (e) { warnings.push(e.message + "；已检索离线补充资料"); onlineState = "unavailable"; }
         }
@@ -264,6 +312,7 @@ function createEngine({ provider, offline = [], parsePage = extractPage, aliases
             choices.push(...localMatches.map(r => ({ title: r.title, entryId: r.id, work: (r.fields.work || []).map(v => v.value).join(" / "), reason: "本地资料中有多个同名／同别名条目，请选择" })));
             localMatches = [];
         }
+        localMatches = rankNames(localMatches, query.text);
         const localPage = localMatches.slice(localOffset, localOffset + limit);
         results.push(...localPage.map(r => projectRecord(r, selected)));
         const nextLocal = localOffset + localPage.length;
@@ -281,22 +330,27 @@ function formatResult(result, budget = 6000) {
     for (const record of result.results) {
         const block = ["条目：" + record.title, "来源：" + record.source.site + " " + (record.source.url || record.source.note || "")];
         if (record.source.fetchedAt) block.push("读取时间：" + record.source.fetchedAt + "；缓存：" + record.source.cache);
+        const headLength = block.length;
         for (const [id, values] of Object.entries(record.fields)) {
             const label = FIELDS.find(f => f.id === id)?.label || id;
-            block.push(label + "：" + (values.length ? values.map(v => v.value + "（" + v.section + "）").join("\n") : "未找到明确资料"));
+            for (const value of values.length ? values : [{ value: "未找到明确资料", section: "" }]) {
+                const text = label + "：" + value.value + (value.section ? "（" + value.section + "）" : "");
+                if (lines.join("\n\n").length + block.join("\n").length + text.length + 120 <= budget) block.push(text);
+                else clipped = true;
+            }
         }
         const text = block.join("\n");
-        if (lines.join("\n\n").length + text.length + 100 > budget) { clipped = true; continue; }
+        if (block.length === headLength || lines.join("\n\n").length + text.length + 100 > budget) { clipped = true; continue; }
         lines.push(text);
         included++;
     }
     if (!result.results.length) lines.push("没有匹配条目；不代表该事实不存在。");
     if (result.results.length && !included) throw new Error("所选字段内容超出注入预算，请减少字段后重新提取。");
-    if (clipped) lines.push("部分条目超出注入预算，未加入；请减少所选字段后重新提取。");
+    if (clipped) lines.push("部分资料超出注入预算，已按完整段落省略；以上不是完整页面，请结合原文。");
     return lines.join("\n\n").slice(0, budget);
 }
 
-return { validateOffline, createEngine, formatResult };
+return { rankNames, validateOffline, createEngine, formatResult };
 });
 
 __def("src/extract.js", function (__req) {
@@ -322,6 +376,9 @@ function extractPage(page, categories = [], parser = new DOMParser()) {
         if (!fields[id].some(v => v.value === value)) fields[id].push({ value, section, url: url + (anchor ? "#" + encodeURIComponent(anchor) : "") });
     };
     add("name", title, "页面标题");
+    const readable = root.cloneNode(true);
+    readable.querySelectorAll("p,li,tr,h1,h2,h3,h4,h5,h6,br,dt,dd").forEach(node => { node.before("\n"); node.after("\n"); });
+    for (const line of readable.textContent.split(/\n+/)) add("content", line.replace(/\s+/g, " ").trim(), "页面原文（未归类）");
     const addCell = (id, node, label) => {
         const valueCell = node.cloneNode(true);
         valueCell.querySelectorAll("br").forEach(n => n.replaceWith("\n"));
@@ -353,6 +410,19 @@ function extractPage(page, categories = [], parser = new DOMParser()) {
         const id = fieldId(clean(term)), next = term.nextElementSibling;
         if (id && next?.tagName === "DD") addCell(id, next, clean(term));
     }
+    // TextExtracts keeps explicit labelled paragraphs even when tables are omitted.
+    // Only a short, recognized label before a colon establishes a field.
+    let paragraphField = null;
+    for (const node of root.querySelectorAll("h2,h3,h4,h5,h6,p")) {
+        if (/^H/.test(node.tagName)) { paragraphField = null; continue; }
+        const text = clean(node), match = /^([^：:]{1,20})[：:]\s*(.*)$/.exec(text);
+        const id = match && fieldId(match[1]);
+        if (id) {
+            paragraphField = match[2] ? null : { id, label: match[1] };
+            if (match[2]) for (const value of id === "aliases" ? match[2].split(/[、，；;]/) : [match[2]]) add(id, value, "正文标注 · " + match[1]);
+        } else if (match && node.querySelector("b,strong")) paragraphField = null;
+        else if (paragraphField && text) add(paragraphField.id, text, "正文标注 · " + paragraphField.label);
+    }
     const stack = [];
     const sections = [];
     for (const node of root.querySelectorAll("h2,h3,h4,h5,h6,p,li,dt,dd")) {
@@ -377,7 +447,7 @@ function extractPage(page, categories = [], parser = new DOMParser()) {
         const title = typeof c === "string" ? c : c.title;
         if (title && !c.hidden) add("categories", title.replace(/^(Category|分类|分類):/i, ""), "页面分类");
     }
-    return { id: site.id + ":" + normalize(title), title, fields, sections, source: { kind: "wiki", site: site.name, siteId: site.id, url, revid: page.revid ?? null, fetchedAt: new Date().toISOString() } };
+    return { id: site.id + ":" + normalize(title), title, fields, sections, source: { kind: "wiki", site: site.name, siteId: site.id, url, revid: page.revid ?? null, contentMethod: page.contentMethod || "parse", fetchedAt: new Date().toISOString() } };
 }
 
 return { extractPage };
@@ -386,7 +456,7 @@ return { extractPage };
 __def("src/fields.js", function (__req) {
 // Explicit aliases only: page prose is never silently promoted into structured facts.
 const FIELDS = [
-    { id: "name", label: "名称", aliases: ["姓名", "本名", "名字", "中文名", "人物名", "译名", "name"] },
+    { id: "name", label: "名称", aliases: ["姓名", "本名", "原名", "名字", "中文名", "人物名", "译名", "name"] },
     { id: "aliases", label: "别名", aliases: ["别称", "別名", "其他名字", "昵称", "称号", "外号", "日文名", "英文名", "alias", "aliases", "nickname"] },
     { id: "work", label: "作品", aliases: ["所属作品", "登场作品", "出身作品", "初登场作品", "首次登场", "系列", "series", "franchise"] },
     { id: "version", label: "版本", aliases: ["世界线", "世界線", "路线"] },
@@ -403,12 +473,13 @@ const FIELDS = [
     { id: "plot", label: "剧情", aliases: ["劇情", "故事", "故事梗概", "剧情简介", "剧情梗概", "故事介绍", "登场剧情", "plot", "story", "synopsis"] },
     { id: "setting", label: "设定", aliases: ["設定", "背景设定", "世界观", "世界觀", "设定文档", "一设资料", "setting"] },
     { id: "chapter", label: "篇章", aliases: ["章节", "章節", "所属篇章"] },
-    { id: "location", label: "地点", aliases: ["地點", "发生地点", "活动范围", "活动地区", "出身地区", "地区", "location", "residence"] },
+    { id: "location", label: "地点", aliases: ["地點", "住所", "居住地", "发生地点", "活动范围", "活动地区", "出身地区", "地区", "location", "residence"] },
     { id: "participants", label: "参与者", aliases: ["参与人物", "登场人物"] },
     { id: "time", label: "时间", aliases: ["时间线", "时间轴", "年表", "发生时间"] },
     { id: "summary", label: "简介", aliases: ["簡介", "介绍", "概述", "概要", "角色介绍", "overview", "introduction"] },
     { id: "tags", label: "萌属性", aliases: ["萌屬性", "标签", "属性", "萌点"] },
-    { id: "categories", label: "分类", aliases: ["分類", "category"] }
+    { id: "categories", label: "分类", aliases: ["分類", "category"] },
+    { id: "content", label: "页面原文", aliases: ["正文", "原文", "content"] }
 ];
 
 function normalize(value) {
@@ -533,7 +604,7 @@ function createHost(run) {
     };
     const parameters = { type: "object", properties: {
         query: { type: "string", description: "名称或条件，例如 原神 阵营~西风骑士团；=精确，~包含；带空格的值用双引号" },
-        mode: { type: "string", enum: ["search", "page", "category", "categories", "subcategories"], description: "search候选检索；page指定页面；category分类页面；categories搜索分类；subcategories子分类" },
+        mode: { type: "string", enum: ["search", "series", "page", "category", "categories", "subcategories"], description: "search名称检索；series字段/分类成员检索；page指定页面；category分类页面；categories搜索分类；subcategories子分类" },
         work: { type: "string", description: "作品范围，省略时使用当前聊天绑定；空串表示不限定" },
         resolveExact: { type: "boolean", description: "用户已从消歧候选中明确选定完整标题时设为 true" },
         entryId: { type: "string", description: "本地同名候选返回的条目 ID，用户选定后原样传回" },
@@ -707,7 +778,7 @@ return { parseImport, createLibrary };
 
 __def("src/mediawiki.js", function (__req) {
 // Shared, read-only MediaWiki wire contract for browser and anonymous bridge.
-const OPERATIONS = ["siteinfo", "search", "search-categories", "get-page", "get-categories", "get-category-members"];
+const OPERATIONS = ["siteinfo", "search", "search-categories", "get-page", "get-categories", "get-category-members", "get-links"];
 
 function encodeCursor(value) {
     return value ? btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(value)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") : null;
@@ -716,24 +787,55 @@ function decodeCursor(token, operation) {
     if (!token) return {};
     if (typeof token !== "string" || token.length > 4000 || !/^[A-Za-z0-9_-]+$/.test(token)) throw new Error("分页令牌无效");
     const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(token.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0))));
-    const key = { search: "sroffset", "search-categories": "sroffset", "get-category-members": "cmcontinue", "get-categories": "clcontinue" }[operation];
-    if (!data || Array.isArray(data) || typeof data !== "object" || Object.keys(data).some(k => k !== "continue" && k !== key)) throw new Error("分页参数越界");
+    const keys = { search: ["sroffset", "gsroffset"], "search-categories": ["sroffset", "gsroffset"], "get-category-members": ["cmcontinue", "gsroffset"], "get-categories": ["clcontinue"], "get-links": ["plcontinue"] }[operation] || [];
+    if (!data || Array.isArray(data) || typeof data !== "object" || Object.keys(data).some(k => k !== "continue" && !keys.includes(k))) throw new Error("分页参数越界");
     if ("continue" in data && typeof data.continue !== "string") throw new Error("分页参数无效");
-    if (key in data && (key === "sroffset" ? !Number.isInteger(data[key]) || data[key] < 0 : typeof data[key] !== "string")) throw new Error("分页参数无效");
+    for (const key of keys) if (key in data && (key.endsWith("offset") ? !Number.isInteger(data[key]) || data[key] < 0 : typeof data[key] !== "string")) throw new Error("分页参数无效");
+    if (keys.filter(key => key in data).length > 1) throw new Error("分页参数冲突");
     return data;
+}
+
+// The public Moegirl API permits query generators and TextExtracts even when
+// list=search / action=parse require authentication. No model or credentials.
+function publicParameters(operation, args = {}) {
+    const standard = apiParameters(operation, args);
+    if (["search", "search-categories", "get-category-members"].includes(operation)) {
+        const next = decodeCursor(args.continueToken, operation);
+        if (next.cmcontinue !== undefined) throw new Error("分类接口已改变，请重新查询第一页");
+        const category = String(args.query).replace(/^(Category|分类|分類):/i, "").replace(/["\\]/g, "\\$&");
+        return { format: "json", formatversion: 2, origin: "*", action: "query", generator: "search",
+            gsrsearch: operation === "get-category-members" ? 'incategory:"' + category + '"' : String(args.query).trim(),
+            gsrnamespace: operation === "search-categories" || operation === "get-category-members" && args.memberType === "subcat" ? 14 : 0,
+            gsrlimit: Number(args.limit ?? 5), prop: "info", inprop: "url",
+            ...(next.gsroffset !== undefined || next.sroffset !== undefined ? { gsroffset: next.gsroffset ?? next.sroffset } : {}) };
+    }
+    if (operation === "get-page") return { format: "json", formatversion: 2, origin: "*", action: "query", prop: "extracts|info|pageprops", titles: String(args.query).trim(), redirects: 1, exlimit: 1, inprop: "url" };
+    return standard;
+}
+
+async function readMediaWiki(operation, args, read, publicProfile = false) {
+    // A generator continuation must stay on the generator path on the next page.
+    const generatorCursor = decodeCursor(args.continueToken, operation).gsroffset !== undefined;
+    if (publicProfile || generatorCursor) return normalizeResponse(operation, await read(publicParameters(operation, args)), args);
+    try { return normalizeResponse(operation, await read(apiParameters(operation, args)), args); }
+    catch (error) {
+        if (error.name === "AbortError" || !["search", "search-categories", "get-page", "get-category-members"].includes(operation)) throw error;
+        return normalizeResponse(operation, await read(publicParameters(operation, args)), args);
+    }
 }
 function apiParameters(operation, args = {}) {
     const q = String(args.query || "").trim().normalize("NFC");
     if (!OPERATIONS.includes(operation)) throw new Error("不支持的 Wiki 操作");
     if (operation !== "siteinfo" && (!q || q.length > 500)) throw new Error("查询名称应为 1–500 字符");
     const limit = Number(args.limit ?? 5);
-    if (!Number.isInteger(limit) || limit < 1 || limit > (operation === "get-categories" ? 500 : 8)) throw new Error("每批数量超出范围");
+    if (!Number.isInteger(limit) || limit < 1 || limit > (["get-categories", "get-links"].includes(operation) ? 500 : 8)) throw new Error("每批数量超出范围");
     const params = { format: "json", formatversion: 2, origin: "*", errorformat: "plaintext" };
     if (operation === "siteinfo") return { ...params, action: "query", meta: "siteinfo", siprop: "general" };
     const next = decodeCursor(args.continueToken, operation);
     if (operation === "search" || operation === "search-categories") return { ...params, action: "query", list: "search", srsearch: q, srnamespace: operation === "search-categories" ? 14 : 0, srlimit: limit, srprop: "snippet", ...next };
     if (operation === "get-page") return { ...params, action: "parse", page: q, redirects: 1, prop: "text|displaytitle|revid|sections|properties|links" };
     if (operation === "get-categories") return { ...params, action: "query", prop: "categories", titles: q, redirects: 1, cllimit: limit, clprop: "hidden", ...next };
+    if (operation === "get-links") return { ...params, action: "query", prop: "links", titles: q, redirects: 1, plnamespace: 0, pllimit: limit, ...next };
     const type = args.memberType || "page";
     if (!["page", "subcat"].includes(type)) throw new Error("未知分类成员类型");
     return { ...params, action: "query", list: "categorymembers", cmtitle: /^(Category|分类|分類):/i.test(q) ? q : "Category:" + q, cmtype: type, cmlimit: limit, cmprop: "ids|title|type", ...next };
@@ -744,15 +846,32 @@ function normalizeResponse(operation, data, args = {}) {
         throw new Error("Wiki " + (err.code || "error") + "：" + (err.info || err.text || "请求被拒绝"));
     }
     const pagination = { hasMore: !!data.continue, continueToken: encodeCursor(data.continue) };
+    if (operation === "get-links") {
+        const page = Object.values(data.query?.pages || {})[0];
+        if (!page || page.missing !== undefined && page.missing !== false) throw new Error("页面链接不可用");
+        return { operation, links: (page.links || []).filter(link => link.ns === 0).map(link => ({ title: link.title })), pagination };
+    }
     if (operation === "siteinfo") {
         if (!data.query?.general?.generator?.includes("MediaWiki")) throw new Error("该地址未返回 MediaWiki 站点信息");
         return { operation, general: data.query.general };
     }
     if (operation === "search" || operation === "search-categories") {
+        if (data.query?.pages || data.batchcomplete !== undefined && !data.query?.search) {
+            const pages = Object.values(data.query?.pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
+            return { operation, items: pages.map(p => ({ title: p.title, pageId: p.pageid, snippetHtml: "" })), pagination };
+        }
         if (!Array.isArray(data.query?.search)) throw new Error("搜索响应无效");
         return { operation, items: data.query.search.map(r => ({ title: r.title, pageId: r.pageid, snippetHtml: r.snippet })), pagination };
     }
     if (operation === "get-page") {
+        if (data.query?.pages) {
+            const p = Object.values(data.query.pages)[0];
+            if (!p || p.missing !== undefined && p.missing !== false) throw new Error("页面不存在");
+            if (typeof p.extract !== "string" || !p.extract.trim()) throw new Error("页面正文摘要不可用，可打开来源页面查看");
+            return { operation, title: p.title, format: "html", content: p.extract, revid: p.lastrevid, sections: [],
+                disambiguation: Object.hasOwn(p.pageprops || {}, "disambiguation"), links: [], contentMethod: "extracts",
+                _warning: "公开正文摘要可能省略信息栏、图片或部分段落；缺失字段请以来源页面为准。" };
+        }
         const p = data.parse;
         const content = typeof p?.text === "string" ? p.text : p?.text?.["*"];
         if (typeof content !== "string") throw new Error("页面正文不可用");
@@ -765,11 +884,16 @@ function normalizeResponse(operation, data, args = {}) {
         if (!p || p.missing !== undefined && p.missing !== false) throw new Error("分类所属页面不存在");
         return { operation, pageTitle: p.title, categories: (p.categories || []).map(c => ({ title: c.title, hidden: c.hidden === true || c.hidden === "" })), pagination };
     }
+    if (data.query?.pages || data.batchcomplete !== undefined && !data.query?.categorymembers) {
+        const pages = Object.values(data.query?.pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
+        return { operation, members: pages.map(p => ({ title: p.title, namespace: p.ns, type: p.ns === 14 ? "subcat" : "page" })), pagination,
+            _warning: "分类成员来自 Wiki 搜索索引，更新可能有延迟；仅列出直接成员，不递归子分类。" };
+    }
     if (!Array.isArray(data.query?.categorymembers)) throw new Error("分类响应无效");
     return { operation, members: data.query.categorymembers.map(m => ({ title: m.title, type: m.type, namespace: m.ns })), pagination };
 }
 
-return { OPERATIONS, encodeCursor, decodeCursor, apiParameters, normalizeResponse };
+return { OPERATIONS, encodeCursor, decodeCursor, publicParameters, readMediaWiki, apiParameters, normalizeResponse };
 });
 
 __def("src/panel.js", function (__req) {
@@ -784,13 +908,27 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
     const root = document.createElement("section");
     root.id = "lore-wiki-panel";
     root.className = "lore-wiki-panel";
-    root.innerHTML = `<header><span class="lore-kicker">MOEGIRLPEDIA · FIELD LOOKUP</span><h2>人物与剧情查询</h2><p>按字段找资料，沿来源读故事。</p></header>
+    root.innerHTML = `<header><h2>人物与剧情查询</h2><p class="lore-muted">输入角色、作品或设定，查阅 Wiki 原文。</p><p class="lore-muted" data-control="scope"></p></header>
+      <label>查询内容<div class="lore-search-input"><input data-control="query" aria-describedby="lore-query-help lore-query-error" placeholder="角色名、作品名或 Wiki 页面网址" enterkeyhint="search"><button data-action="clearQuery" aria-label="清空查询" title="清空查询" hidden>×</button></div></label>
+      <p id="lore-query-help" class="lore-muted">例如：明罗、天野远子。按回车查询；按作品找成员可选“字段检索”。</p>
+      <p id="lore-query-error" class="lore-error" hidden></p>
+      <div class="lore-row lore-query-options"><label>查询方式<select data-control="mode"><option value="search">搜索人物、作品或设定</option><option value="series">字段检索：按作品找成员</option><option value="page">读取指定页面</option><option value="categories">查找分类</option><option value="category">查看分类成员</option><option value="subcategories">查看下级分类</option></select></label><label>资料类型<select data-control="preset"><option value="character">人物设定</option><option value="basic">基本资料</option><option value="story">剧情经历</option><option value="content">页面原文</option><option value="all">全部字段</option><option value="custom">自定义</option></select></label></div>
+      <details class="lore-field-options"><summary>自定义字段与筛选 <span class="lore-muted" data-control="fieldCount"></span></summary>
+        <div class="lore-fields" data-control="fields"></div>
+        <div class="lore-row"><label>Wiki 来源<select data-control="wiki"></select></label><label>每批数量<select data-control="limit"><option>3</option><option selected>5</option><option>8</option></select></label></div>
+        <p class="lore-muted">可加筛选：种族=人类（精确）、阵营~骑士（包含）。多个条件同时满足；缺失字段不算命中。</p>
+      </details>
+      <div class="lore-actions lore-query-actions"><button class="lore-primary" data-action="search">查询资料</button><button data-action="cancel" hidden>取消查询</button><button data-action="next" disabled hidden>下一批</button><button data-action="inject" disabled>用于下一轮回复</button></div>
+      <p data-control="injectionHint" class="lore-muted">资料可能含剧透。查询后可选择用于下一轮回复。</p>
+      <p role="status" aria-live="polite" data-control="status">输入名称开始查询。</p><div class="lore-actions" data-control="trail"></div><div data-control="results"></div>
+      <details class="lore-settings"><summary>更多设置与本地资料</summary>
+      <button data-action="clear">清除已注入资料</button>
       <details class="lore-connection"><summary>连接与离线资料</summary>
-        <p>萌娘百科使用认证桥接；自定义 MediaWiki 可直连或使用公共桥接。</p>
+        <p class="lore-muted">默认直接查询萌娘百科，无需账号、令牌或模型。下面的桥接设置仅供自定义站点或可选模型整理使用。</p>
         <label>查询方式<select data-control="source"><option value="bridge">联网优先，离线补充</option><option value="offline">仅离线资料</option></select></label>
         <label>桥接地址<input data-control="bridge" placeholder="http://127.0.0.1:39765"></label>
-        <label>配对令牌<input data-control="token" type="password" autocomplete="off" placeholder="桥接启动时显示的令牌，仅保留在内存"></label>
-        <p class="lore-muted">萌娘百科用户名和 Bot Password 仅在桥接服务的环境变量中配置。</p>
+        <label>配对令牌<input data-control="token" type="password" autocomplete="off" placeholder="仅保留在本页内存"></label><button data-action="showToken" aria-pressed="false">显示令牌</button>
+        <p class="lore-muted">桥接地址和令牌仅供选择“本地桥接”的自定义 Wiki 使用。查询过程不调用 AI。</p>
         <div class="lore-actions"><button data-action="save">保存连接</button><button data-action="import">导入资料</button><button data-action="export">导出离线 JSON</button><button data-action="cache">清空查询缓存</button></div>
         <input data-control="file" type="file" accept=".json,application/json" hidden>
       </details>
@@ -803,17 +941,11 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
         <div class="lore-actions"><button data-action="probe">探测并测试</button><button data-action="addSite" disabled>保存站点</button><button data-action="manualSite">按 API 地址手动保存</button><button data-action="deleteSite">删除所选自定义站点</button></div>
         <p data-control="probeStatus" class="lore-muted">支持 MediaWiki；其他类型的 Wiki 暂不支持。测试不会发送萌百账号凭据。</p>
       </details>
-      <label>Wiki 来源<select data-control="wiki"></select></label>
       <div class="lore-row"><label>当前作品<input data-control="work" placeholder="可选，例如 东方Project"></label><button data-action="bind">绑定当前聊天</button></div>
-      <details class="lore-aliases"><summary>当前作品的别名映射</summary><p class="lore-muted">每行：别名=完整页面标题。按当前来源与作品保存；同名多义时会显示候选。</p><textarea data-control="aliases" rows="3" placeholder="灵梦=博丽灵梦"></textarea><button data-action="saveAliases">保存别名</button></details>
-      <div class="lore-row"><label>检索方式<select data-control="mode"><option value="search">按条件搜索</option><option value="page">指定页面提取</option><option value="categories">搜索分类名称</option><option value="category">分类直接成员</option><option value="subcategories">浏览子分类</option></select></label><label>每批候选<select data-control="limit"><option>3</option><option selected>5</option><option>8</option></select></label></div>
-      <label>查询名称或条件<textarea data-control="query" rows="2" placeholder='例：原神 阵营~西风骑士团；指定页面：博丽灵梦'></textarea></label>
-      <p class="lore-muted">多个条件同时满足。= 精确匹配，~ 包含匹配；带空格的值用双引号。未读取到的字段不算命中。</p>
-      <details open><summary>返回字段</summary><div class="lore-fields" data-control="fields"></div></details>
-      <div class="lore-actions"><button class="lore-primary" data-action="search">查询资料</button><button data-action="next" disabled>下一批</button><button data-action="inject" disabled>用于下一轮回复</button><button data-action="clear">清除注入</button></div>
-      <p class="lore-warning">当前版本按页面字段提取，尚不提供章节级防剧透过滤。</p>
-      <p role="status" aria-live="polite" data-control="status">准备就绪</p><div class="lore-actions" data-control="trail"></div><div data-control="results"></div>`;
+      <details class="lore-aliases"><summary>当前作品的别名映射</summary><p class="lore-muted">每行：别名=完整页面标题。按当前来源与作品保存；同名多义时会显示候选。</p><textarea style="resize:none" data-control="aliases" rows="3" placeholder="灵梦=博丽灵梦"></textarea><button data-action="saveAliases">保存别名</button></details>
+      </details>`;
     target.append(root);
+    root.addEventListener("input", event => { if (event.target.tagName === "TEXTAREA") { event.target.style.height = "auto"; event.target.style.height = Math.min(event.target.scrollHeight + 2, 440) + "px"; } });
     const control = name => root.querySelector('[data-control="' + name + '"]');
     const button = name => root.querySelector('[data-action="' + name + '"]');
     control("source").value = settings.mode;
@@ -822,13 +954,16 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
         control("wiki").replaceChildren();
         for (const source of getSettings().sources) { const option = document.createElement("option"); option.value = source.id; option.textContent = source.name; control("wiki").append(option); }
         if (getSettings().sources.some(s => s.id === id)) control("wiki").value = id;
+        updateScope();
     };
     const refreshAliases = () => {
         control("aliases").value = getSettings().aliases.filter(e => e.sourceId === control("wiki").value && e.work === control("work").value.trim()).map(e => e.alias + "=" + e.title).join("\n");
     };
-    const applyBinding = () => { const binding = host.getBinding(); refreshSources(binding.sourceId || getSettings().activeSource); control("work").value = binding.work || ""; refreshAliases(); };
+    function updateScope() { control("scope").textContent = (getSettings().sources.find(s => s.id === control("wiki").value)?.name || "请选择来源") + " · " + (control("source").value === "offline" ? "仅离线" : "联网优先") + (control("work").value.trim() ? " · 作品：" + control("work").value.trim() : ""); }
+    const applyBinding = () => { const binding = host.getBinding(); refreshSources(binding.sourceId || getSettings().activeSource); control("work").value = binding.work || ""; refreshAliases(); updateScope(); };
     applyBinding();
-    const defaults = new Set(["summary", "work", "personality", "abilities", "relationships", "history", "plot"]);
+    const presets = { character: ["summary", "work", "personality", "abilities", "relationships"], basic: ["name", "aliases", "work", "gender", "race", "occupation", "affiliation", "summary"], story: ["summary", "history", "plot", "setting"], content: ["content"], all: FIELDS.map(f => f.id) };
+    const defaults = new Set(presets.character);
     for (const field of FIELDS) {
         const label = document.createElement("label");
         const input = document.createElement("input");
@@ -836,31 +971,48 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
         label.append(input, field.label);
         control("fields").append(label);
     }
-    let latest, cursor, mark, lastArgs, busy = false, inputRevision = 0, discovered = null, trail = [];
+    let latest, cursor, mark, lastArgs, busy = false, inputRevision = 0, discovered = null, trail = [], controller;
     const status = text => control("status").textContent = text;
     const persist = async () => { await save({ mode: control("source").value, bridgeUrl: control("bridge").value.trim(), activeSource: control("wiki").value }, control("token").value); };
-    const invalidate = () => { inputRevision++; cursor = null; latest = null; button("next").disabled = true; button("inject").disabled = true; root.dispatchEvent(new Event("lore-invalidated")); };
-    root.addEventListener("input", event => { if (["query", "mode", "limit", "wiki", "work", "source", "bridge", "token"].some(name => event.target === control(name)) || control("fields").contains(event.target)) invalidate(); });
-    control("wiki").onchange = () => { refreshAliases(); trail = []; control("trail").replaceChildren(); };
-    control("work").onchange = refreshAliases;
-    host.onChatChanged(() => { invalidate(); applyBinding(); trail = []; control("trail").replaceChildren(); control("results").replaceChildren(); status("聊天已切换，已读取此聊天的作品和来源绑定。"); });
-    function navigate(title, mode, exact = false, entryId) {
-        trail.push({ title: control("query").value, mode: control("mode").value });
+    const invalidate = () => { inputRevision++; cursor = null; latest = null; button("next").disabled = true; button("next").hidden = true; button("inject").disabled = true; root.dispatchEvent(new Event("lore-invalidated")); };
+    const updateFields = () => { control("fieldCount").textContent = "已选 " + control("fields").querySelectorAll("input:checked").length + " 项"; };
+    updateFields();
+    control("preset").onchange = () => {
+        const selected = presets[control("preset").value];
+        if (!selected) { root.querySelector(".lore-field-options").open = true; return; }
+        for (const input of control("fields").querySelectorAll("input")) input.checked = selected.includes(input.value);
+        invalidate(); updateFields();
+    };
+    control("fields").addEventListener("change", () => { control("preset").value = "custom"; updateFields(); });
+    control("query").addEventListener("input", () => { button("clearQuery").hidden = !control("query").value; control("query").removeAttribute("aria-invalid"); root.querySelector("#lore-query-error").hidden = true; });
+    control("query").addEventListener("keydown", event => { if (event.key === "Enter" && !event.isComposing && event.keyCode !== 229) { event.preventDefault(); search(false); } });
+    button("clearQuery").onclick = () => { controller?.abort(); invalidate(); control("query").value = ""; button("clearQuery").hidden = true; control("results").replaceChildren(); control("trail").replaceChildren(); trail = []; status("输入名称开始查询。"); control("query").focus(); };
+    button("cancel").onclick = () => { controller?.abort(); invalidate(); status("已取消查询，可修改条件后重试。"); };
+    button("showToken").onclick = () => { const show = control("token").type === "password"; control("token").type = show ? "text" : "password"; button("showToken").textContent = show ? "隐藏令牌" : "显示令牌"; button("showToken").setAttribute("aria-pressed", String(show)); };
+    root.addEventListener("input", event => { if (["query", "mode", "preset", "limit", "wiki", "work", "source", "bridge", "token"].some(name => event.target === control(name)) || control("fields").contains(event.target)) { if (busy) { controller?.abort(); status("条件已修改，请重新查询。"); } invalidate(); } });
+    control("wiki").onchange = () => { refreshAliases(); updateScope(); trail = []; control("trail").replaceChildren(); };
+    control("source").addEventListener("change", updateScope);
+    control("work").onchange = () => { refreshAliases(); updateScope(); };
+    host.onChatChanged(() => { controller?.abort(); invalidate(); applyBinding(); trail = []; control("trail").replaceChildren(); control("results").replaceChildren(); status("聊天已切换，已读取此聊天的作品和来源绑定。"); });
+    function navigate(title, mode, exact = false, entryId, preset) {
+        trail.push({ title: control("query").value, mode: control("mode").value, preset: control("preset").value, fields: [...control("fields").querySelectorAll("input:checked")].map(n => n.value) });
+        if (preset) { control("preset").value = preset; control("preset").dispatchEvent(new Event("change")); }
         control("query").value = title; control("mode").value = mode; invalidate();
+        button("clearQuery").hidden = !title;
         renderTrail(); search(false, { resolveExact: exact, entryId });
     }
     function renderTrail() {
         control("trail").replaceChildren();
         if (!trail.length) return;
         const back = document.createElement("button"); back.textContent = "← 返回上级浏览";
-        back.onclick = () => { const prev = trail.pop(); control("query").value = prev.title; control("mode").value = prev.mode; invalidate(); renderTrail(); search(false); };
+        back.onclick = () => { const prev = trail.pop(); control("query").value = prev.title; control("mode").value = prev.mode; control("preset").value = prev.preset; for (const input of control("fields").querySelectorAll("input")) input.checked = prev.fields.includes(input.value); updateFields(); button("clearQuery").hidden = !prev.title; invalidate(); renderTrail(); search(false); };
         control("trail").append(back);
     }
     function render(result) {
         const container = control("results");
         container.replaceChildren();
         const intro = document.createElement("p");
-        intro.textContent = result.notice;
+        intro.className = "lore-muted"; intro.textContent = result.notice;
         container.append(intro);
         for (const warning of result.warnings) { const p = document.createElement("p"); p.className = "lore-warning"; p.textContent = warning; container.append(p); }
         for (const item of result.navigation || []) {
@@ -870,18 +1022,22 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
             for (const [label, mode] of [["查看页面成员", "category"], ["展开子分类", "subcategories"]]) { const b = document.createElement("button"); b.textContent = label; b.onclick = () => navigate(item.title, mode); actions.append(b); }
             row.append(actions); container.append(row);
         }
-        for (const choice of result.choices || []) {
+        const extraChoices = document.createElement("details"), extraSummary = document.createElement("summary");
+        extraSummary.textContent = "其他候选（" + Math.max(0, (result.choices?.length || 0) - 8) + "）"; extraChoices.append(extraSummary);
+        for (const [index, choice] of (result.choices || []).entries()) {
             const row = document.createElement("article"); row.className = "lore-result lore-choice";
             const title = document.createElement("strong"); title.textContent = choice.title;
             const why = document.createElement("p"); why.textContent = choice.reason + (choice.work ? " · " + choice.work : "");
             const b = document.createElement("button"); b.textContent = "选择此条目"; b.onclick = () => navigate(choice.title, "page", true, choice.entryId);
-            row.append(title, why, b); container.append(row);
+            row.append(title, why, b); (index < 8 ? container : extraChoices).append(row);
         }
+        if (result.choices?.length > 8) container.append(extraChoices);
         for (const record of result.results) {
             const card = document.createElement("article"); card.className = "lore-result";
             const title = document.createElement("h3"); title.textContent = record.title;
             const source = document.createElement("p"); source.className = "lore-muted";
-            source.textContent = record.source.kind === "wiki" ? record.source.site + " · " + record.source.cache + " · " + record.source.fetchedAt : "离线补充 · " + record.source.site;
+            const cacheNames = { network: "刚刚联网读取", fresh: "本地缓存", stale: "过期缓存" };
+            source.textContent = record.source.kind === "wiki" ? record.source.site + " · " + (cacheNames[record.source.cache] || "联网资料") : "离线补充 · " + record.source.site;
             if (["different", "unknown"].includes(record.workMatch)) source.textContent += " · 作品归属未匹配（已手动选择）";
             card.append(title, source);
             if (record.source.url) {
@@ -889,23 +1045,50 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
             }
             const list = document.createElement("dl");
             for (const [id, values] of Object.entries(record.fields)) {
+                if (!values.length) continue;
                 const dt = document.createElement("dt"), dd = document.createElement("dd");
                 dt.textContent = FIELDS.find(f => f.id === id)?.label || id;
-                dd.textContent = values.length ? values.map(v => v.value + "〔" + v.section + "〕").join("\n") : "未找到明确资料";
+                const text = values.map(v => v.value).join("\n\n");
+                if (text.length > 380) {
+                    const preview = document.createElement("p"); preview.textContent = text.slice(0, 280) + "…";
+                    const more = document.createElement("details"), summary = document.createElement("summary"), full = document.createElement("div");
+                    more.className = "lore-full-text"; summary.textContent = "展开完整资料（" + text.length.toLocaleString("zh-CN") + " 字）";
+                    full.textContent = text; more.append(summary, full); dd.append(preview, more);
+                } else dd.textContent = text;
                 list.append(dt, dd);
             }
-            card.append(list); container.append(card);
+            card.append(list);
+            const missing = Object.entries(record.fields).filter(([, values]) => !values.length).map(([id]) => FIELDS.find(f => f.id === id)?.label || id);
+            if (missing.length) { const note = document.createElement("p"); note.className = "lore-muted"; note.textContent = "未找到明确资料：" + missing.join("、"); card.append(note); }
+            if (!record.fields.content?.length && record.source.kind === "wiki") {
+                const read = document.createElement("button"); read.textContent = "阅读页面原文";
+                read.onclick = () => navigate(record.title, "page", true, undefined, "content");
+                card.append(read);
+            }
+            container.append(card);
         }
         if (result.rejected.length) {
             const detail = document.createElement("details"), summary = document.createElement("summary");
             summary.textContent = "未通过字段核验的候选（" + result.rejected.length + "）"; detail.append(summary);
-            for (const r of result.rejected) { const p = document.createElement("p"); p.textContent = r.title + "：缺失 " + r.missing.join("、") + "；不匹配 " + r.mismatched.join("、"); detail.append(p); }
+            const labels = ids => ids.map(id => FIELDS.find(f => f.id === id)?.label || id).join("、") || "无";
+            for (const r of result.rejected) { const p = document.createElement("p"); p.textContent = r.title + "：缺失 " + labels(r.missing) + "；不匹配 " + labels(r.mismatched); detail.append(p); }
             container.append(detail);
+        }
+        if (!result.results.length && !result.navigation?.length && !result.choices?.length) {
+            const empty = document.createElement("p"); empty.className = "lore-empty";
+            empty.textContent = result.onlineState === "unavailable" ? "联网读取失败。请检查网络与来源后重试；也可导入本地资料补充。" : result.rejected.length ? "候选没有满足全部条件。可减少筛选条件，或读取指定页面查看原文。" : "没有找到匹配资料。试试角色全名、别名，或直接粘贴 Wiki 页面网址。";
+            container.append(empty);
         }
     }
     async function search(next, overrides = {}) {
         if (busy) return;
+        if (!control("query").value.trim()) {
+            const error = root.querySelector("#lore-query-error"); error.textContent = "请输入角色名、作品名或页面网址。"; error.hidden = false;
+            control("query").setAttribute("aria-invalid", "true"); control("query").focus(); return;
+        }
         busy = true; button("search").disabled = button("next").disabled = button("inject").disabled = true;
+        controller = new AbortController(); const active = controller;
+        button("cancel").hidden = false; button("search").setAttribute("aria-busy", "true"); control("results").setAttribute("aria-busy", "true"); control("results").inert = true;
         status("正在查询并核验字段…");
         mark = host.stamp();
         const revision = inputRevision;
@@ -913,15 +1096,17 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
             await persist();
             const args = next ? { ...lastArgs, cursor } : { query: control("query").value, mode: control("mode").value, sourceId: control("wiki").value, work: control("work").value.trim(), limit: Number(control("limit").value), fields: [...control("fields").querySelectorAll("input:checked")].map(n => n.value), ...overrides };
             if (!args.fields.length) throw new Error("请至少选择一个返回字段");
-            const result = await run(args);
+            const result = await run(args, { signal: active.signal });
+            if (active.signal.aborted) return;
             if (revision !== inputRevision || !host.current(mark)) { status("查询条件或聊天已修改，请重新查询。"); return; }
             latest = result; cursor = result.cursor; lastArgs = { ...args, cursor: undefined };
             render(result);
-            status("本批读取 " + result.scanned + " 个 Wiki 候选，返回 " + result.results.length + " 条资料、" + (result.navigation?.length || 0) + " 个分类、" + (result.choices?.length || 0) + " 个待确认条目。" + (storage.state.warning || ""));
+            status("本批找到 " + result.results.length + " 条资料" + (result.navigation?.length ? "、" + result.navigation.length + " 个分类" : "") + (result.choices?.length ? "、" + result.choices.length + " 个待选条目" : "") + (result.cursor ? "；还有下一批。" : "。") + (storage.state.warning || ""));
             button("next").disabled = !cursor;
+            button("next").hidden = !cursor;
             button("inject").disabled = !result.results.length || !host.current(mark) || !host.status.injection;
-        } catch (e) { invalidate(); status(e.message); }
-        finally { busy = false; button("search").disabled = false; }
+        } catch (e) { if (!active.signal.aborted) { invalidate(); status(e.message); } }
+        finally { busy = false; button("search").disabled = false; button("cancel").hidden = true; button("search").removeAttribute("aria-busy"); control("results").removeAttribute("aria-busy"); control("results").inert = false; }
     }
     button("search").onclick = () => search(false);
     button("next").onclick = () => search(true);
@@ -972,7 +1157,8 @@ function mountPanel({ run, settings, getSettings, discoverSource, saveSource, re
     };
     button("cache").onclick = async () => { await storage.set("wiki-cache", {}); status("查询缓存已清空，离线资料保留。"); };
     mountWorkflows({ root, getSettings, save, automatic, host, summarize, getLatest: () => ({ latest, mark, query: control("query").value }), getLibrary, importData, saveEntry, deleteEntry, restoreLibrary, invalidate, status, storage });
-    if (!host.status.tools) status("已加载查询面板；当前宿主没有注册 AI 工具。" + storage.state.warning);
+    control("injectionHint").textContent = host.status.injection ? "资料可能含剧透。查询后可用于当前聊天下一轮回复。" : "资料可能含剧透。当前为独立查询环境，注入回复需在酒馆内使用。";
+    if (storage.state.warning) status(storage.state.warning);
 }
 
 return { mountPanel };
@@ -980,10 +1166,10 @@ return { mountPanel };
 
 __def("src/provider.js", function (__req) {
 const { MOEGIRL, validateSource } = __req("src/sources.js");
-const { apiParameters, normalizeResponse } = __req("src/mediawiki.js");
+const { readMediaWiki } = __req("src/mediawiki.js");
 
 const DEFAULTS = { mode: "bridge", bridgeUrl: "http://127.0.0.1:39765", timeoutMs: 20000, cacheMinutes: 30, activeSource: "moegirl", sources: [MOEGIRL], aliases: [] };
-const MOEGIRL_API = "https://mzh.moegirl.org.cn/api.php";
+const MOEGIRL_API = MOEGIRL.apiUrl;
 
 function createProvider({ settings = {}, source, token = "", storage, signal, fetchFn = globalThis.fetch } = {}) {
     const config = { ...DEFAULTS, ...settings };
@@ -991,7 +1177,7 @@ function createProvider({ settings = {}, source, token = "", storage, signal, fe
     async function request(operation, args = {}) {
         if (signal?.aborted) throw new DOMException("查询已取消", "AbortError");
         if (config.mode === "offline") throw new Error("当前为离线模式");
-        const key = JSON.stringify(["v2", source, config.bridgeUrl, operation, args]);
+        const key = JSON.stringify(["v4", source, config.bridgeUrl, operation, args]);
         const cache = await storage?.get("wiki-cache") || {};
         const old = cache[key];
         if (old && Date.now() - old.at < config.cacheMinutes * 60000) return { ...old.value, _cache: "fresh", _fetchedAt: old.at };
@@ -1001,21 +1187,24 @@ function createProvider({ settings = {}, source, token = "", storage, signal, fe
         if (signal?.aborted) controller.abort();
         const timer = setTimeout(() => controller.abort(), Math.max(1000, config.timeoutMs));
         try {
-            let response;
+            let value;
             if (source.transport === "bridge") {
                 const base = new URL(config.bridgeUrl);
                 if (!["http:", "https:"].includes(base.protocol) || base.username || base.password) throw new Error("桥接地址必须是 HTTP(S) 地址");
                 if (!token) throw new Error("请填写桥接服务启动时显示的配对令牌（不是萌百密码）");
-                response = await fetchFn(new URL("/query", base), { method: "POST", headers: { "Content-Type": "application/json", "X-Lore-Token": token }, body: JSON.stringify({ operation, ...args, ...(source.id !== "moegirl" ? { source: { apiUrl: source.apiUrl } } : {}) }), signal: controller.signal, credentials: "omit" });
+                const response = await fetchFn(new URL("/query", base), { method: "POST", headers: { "Content-Type": "application/json", "X-Lore-Token": token }, body: JSON.stringify({ operation, ...args, ...(source.id !== "moegirl" ? { source: { apiUrl: source.apiUrl } } : {}) }), signal: controller.signal, credentials: "omit" });
+                if (!response.ok) throw new Error("Wiki 请求失败 HTTP " + response.status);
+                value = await response.json();
             } else {
-                const url = new URL(source.apiUrl);
-                url.search = new URLSearchParams(apiParameters(operation, args)).toString();
-                response = await fetchFn(url, { signal: controller.signal, credentials: "omit" });
+                value = await readMediaWiki(operation, args, async params => {
+                    const url = new URL(source.apiUrl);
+                    url.search = new URLSearchParams(params).toString();
+                    const response = await fetchFn(url, { signal: controller.signal, credentials: "omit" });
+                    if (!response.ok) throw new Error("Wiki 请求失败 HTTP " + response.status);
+                    return response.json();
+                }, source.id === "moegirl");
             }
-            if (!response.ok) throw new Error("Wiki 请求失败 HTTP " + response.status + (response.status === 401 ? "，请检查访问权限或配对令牌" : ""));
-            const raw = await response.json();
             if (signal?.aborted) throw new DOMException("查询已取消", "AbortError");
-            const value = source.transport === "direct" ? normalizeResponse(operation, raw, args) : raw;
             if (value.error || value.errors) throw new Error(String(value.error?.message || value.error?.info || value.error || "Wiki API 返回错误"));
             const at = Date.now();
             cache[key] = { at, value };
@@ -1063,7 +1252,7 @@ return { validateAliases, resolveAlias, workMatch };
 });
 
 __def("src/sources.js", function (__req) {
-const MOEGIRL = { id: "moegirl", name: "萌娘百科", url: "https://zh.moegirl.org.cn/", apiUrl: "https://mzh.moegirl.org.cn/api.php", articlePath: "https://zh.moegirl.org.cn/$1", transport: "bridge" };
+const MOEGIRL = { id: "moegirl", name: "萌娘百科", url: "https://zh.moegirl.org.cn/", apiUrl: "https://zh.moegirl.org.cn/api.php", articlePath: "https://zh.moegirl.org.cn/$1", transport: "direct" };
 
 function wikiUrl(value) {
     let url;
@@ -1093,13 +1282,28 @@ function validateSource(source) {
 function pageUrl(source, title) {
     return wikiUrl((source?.articlePath || MOEGIRL.articlePath).replace("$1", encodeURIComponent(title))).href;
 }
+function titleFromUrl(input, source = MOEGIRL) {
+    const url = wikiUrl(input);
+    const allowed = new Set([wikiUrl(source.url).hostname, wikiUrl(source.apiUrl).hostname]);
+    if (source.id === "moegirl") allowed.add("mzh.moegirl.org.cn");
+    if (!allowed.has(url.hostname)) throw new Error("页面网址与当前 Wiki 不同，请先切换或添加该来源。");
+    const template = new URL(source.articlePath.replace("$1", "LORE_TITLE"));
+    let title = url.searchParams.get("title");
+    if (!title) for (const [key, value] of template.searchParams) if (value === "LORE_TITLE") title = url.searchParams.get(key);
+    if (!title) {
+        const [prefix, suffix] = template.pathname.split("LORE_TITLE");
+        if (suffix !== undefined && url.pathname.startsWith(prefix) && url.pathname.endsWith(suffix)) title = decodeURIComponent(url.pathname.slice(prefix.length, suffix ? -suffix.length : undefined));
+    }
+    if (!title || /^(?:api|index)\.php$/i.test(title)) throw new Error("请粘贴具体条目的网址，或直接输入页面标题。");
+    return title.replace(/_/g, " ").trim();
+}
 function sourceFromInfo(apiUrl, general, transport = "direct", name = "") {
     const base = wikiUrl(new URL(general.server || general.base || apiUrl, apiUrl).href);
     const articlePath = new URL(general.articlepath || "/w/index.php?title=$1", base).href.replace(/%241/g, "$1");
     return validateSource({ name: name || general.sitename, url: general.base || base.origin, apiUrl, articlePath, transport });
 }
 
-return { MOEGIRL, wikiUrl, apiCandidates, validateSource, pageUrl, sourceFromInfo };
+return { MOEGIRL, wikiUrl, apiCandidates, validateSource, pageUrl, titleFromUrl, sourceFromInfo };
 });
 
 __def("src/storage.js", function (__req) {
@@ -1217,11 +1421,11 @@ const { parseImport } = __req("src/library.js");
 function mountWorkflows({ root, getSettings, save, automatic, host, summarize, getLatest, getLibrary, importData, saveEntry, deleteEntry, restoreLibrary, invalidate, status, storage }) {
     const box = document.createElement("div");
     box.className = "lore-workflows";
-    box.innerHTML = `<details class="lore-auto"><summary>自动查询与副模型整理</summary>
+    box.innerHTML = `<details class="lore-auto"><summary>回复前自动查资料</summary>
       <label class="lore-check"><input type="checkbox" data-flow="enabled"> 生成回复前自动查询资料</label>
       <div class="lore-row"><label>每轮最多查询<input data-flow="maxQueries" type="number" min="1" max="3"></label><label>等待上限（毫秒）<input data-flow="budgetMs" type="number" min="1000" max="20000" step="1000"></label></div>
       <div class="lore-row"><label>扫描最近几条玩家消息<input data-flow="scanDepth" type="number" min="1" max="5"></label><label>注入预算（字符）<input data-flow="injectBudget" type="number" min="500" max="12000" step="500"></label></div>
-      <label>关注词（每行一个）<textarea data-flow="watchlist" rows="3" placeholder="博丽灵梦&#10;雾雨魔理沙"></textarea></label>
+      <label>关注词（每行一个）<textarea style="resize:none" data-flow="watchlist" rows="3" placeholder="明罗&#10;天野远子"></textarea></label>
       <label>自动返回字段<input data-flow="autoFields" placeholder="简介,作品,性格,能力,关系"></label>
       <label class="lore-check"><input data-flow="brackets" type="checkbox"> 也查询「括号中的未知名称」</label>
       <label class="lore-check"><input data-flow="autoSummary" type="checkbox"> 自动资料交给独立副模型整理（失败时用原文）</label>
@@ -1229,7 +1433,7 @@ function mountWorkflows({ root, getSettings, save, automatic, host, summarize, g
       <label>整理等待上限（毫秒）<input data-flow="summaryTimeout" type="number" min="1000" max="30000" step="1000"></label>
       <p class="lore-muted">独立副模型地址、模型与密钥在桥接服务中配置。自动查询识别已知名称、别名及关注词，同名歧义会跳过。</p>
       <div class="lore-actions"><button data-flow-action="saveAuto">保存自动设置</button><button data-flow-action="checkAuto">检查本轮自动资料</button></div>
-      <p data-flow="autoStatus" class="lore-muted"></p><label>上次自动注入预览<textarea readonly data-flow="autoPreview" rows="5"></textarea></label>
+      <p data-flow="autoStatus" class="lore-muted"></p><label>上次自动注入预览<textarea style="resize:none" readonly data-flow="autoPreview" rows="5"></textarea></label>
     </details>
     <details class="lore-library"><summary>资料导入与编辑</summary>
       <p class="lore-muted">支持 TXT、Markdown、本插件 JSON 和 SillyTavern／角色卡世界书。可先预览，再合并或替换。</p>
@@ -1247,7 +1451,7 @@ function mountWorkflows({ root, getSettings, save, automatic, host, summarize, g
         <div class="lore-actions"><button data-flow-action="saveEntry">保存条目</button><button data-flow-action="deleteEntry">删除条目</button></div>
       </div><p data-flow="libraryStatus" class="lore-muted"></p>
     </details>`;
-    root.querySelector(".lore-aliases").after(box);
+    root.querySelector(".lore-settings").append(box);
     const flow = name => box.querySelector('[data-flow="' + name + '"]');
     const action = name => box.querySelector('[data-flow-action="' + name + '"]');
     const config = getSettings();
@@ -1271,7 +1475,7 @@ function mountWorkflows({ root, getSettings, save, automatic, host, summarize, g
 
     const summaryBox = document.createElement("details"); summaryBox.className = "lore-summary";
     summaryBox.innerHTML = `<summary>整理查询结果</summary><label>整理重点（可选）<input data-summary="topic" placeholder="例如 角色性格与说话习惯"></label><div class="lore-actions"><button data-summary-action="run">用副模型整理本批资料</button><button data-summary-action="inject" disabled>将整理用于下一轮</button></div><p data-summary="status" class="lore-muted">原始查询资料始终保留，整理结果须通过原文引用核验。</p><pre data-summary="result" class="lore-preview"></pre>`;
-    root.querySelector('[data-control="results"]').before(summaryBox);
+    root.querySelector(".lore-settings").append(summaryBox);
     const s = name => summaryBox.querySelector('[data-summary="' + name + '"]');
     const sb = name => summaryBox.querySelector('[data-summary-action="' + name + '"]');
     let summary = null, summaryController = null;
@@ -1377,7 +1581,7 @@ const { createAutomatic, AUTOMATIC_DEFAULTS, validateAutomation } = __req("src/a
 const { createLibrary } = __req("src/library.js");
 const { generateSummary } = __req("src/summary.js");
 
-const VERSION = "0.3.0";
+const VERSION = "0.5.0";
 const fields = FIELDS;
 const storage = createStorage();
 let settings = { ...DEFAULTS, ...AUTOMATIC_DEFAULTS }, token = "", offline = [], host, learned = [], automatic;
@@ -1471,6 +1675,8 @@ async function prepareAutomatic(...args) { await ready; return automatic.prepare
 globalThis.LoreWikiLookup_Intercept = async (...args) => { try { return await prepareAutomatic(...args); } catch (e) { console.warn("[LoreWiki] 自动查询跳过", e.message); return ""; } };
 
 async function boot() {
+    // TauriTavern exposes its host ABI asynchronously, as in the reference plugin.
+    if (globalThis.__TAURITAVERN__?.ready) await globalThis.__TAURITAVERN__.ready;
     settings = validateAutomation({ ...DEFAULTS, ...await storage.get("settings") });
     settings.sources = [MOEGIRL, ...(settings.sources || []).filter(s => s.id !== "moegirl").map(validateSource)];
     settings.aliases = validateAliases(settings.aliases || []);
@@ -1485,8 +1691,15 @@ async function boot() {
     } });
     const mount = () => mountPanel({ run: query, settings, getSettings, discoverSource, saveSource, removeSource, save: configure, importData, exportData: getLibrary, getLibrary, saveEntry, deleteEntry, restoreLibrary, summarize: summarizeResult, automatic, storage, host });
     if (typeof document !== "undefined") {
-        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true });
-        else mount();
+        const mountWhenReady = () => {
+            mount();
+            if (!document.getElementById("lore-wiki-panel")) {
+                const observer = new MutationObserver(() => { mount(); if (document.getElementById("lore-wiki-panel")) observer.disconnect(); });
+                observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+            }
+        };
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountWhenReady, { once: true });
+        else mountWhenReady();
     }
     return { version: VERSION, ...host.status };
 }
@@ -1497,7 +1710,7 @@ ready.catch(error => console.error("[LoreWiki] 初始化失败", error));
 return { VERSION, fields, query, configure, getSettings, discoverSource, saveSource, removeSource, importData, getLibrary, saveEntry, deleteEntry, restoreLibrary, summarizeResult, prepareAutomatic, ready };
 });
 
-try { globalThis.LoreWikiLookupBuild = {"at":"2026-10-15T14:56:21","hash":"a0648bd2","modules":15}; } catch (e) { /* 忽略 */ }
+try { globalThis.LoreWikiLookupBuild = {"at":"2026-10-15T20:16:28","hash":"15147863","modules":15}; } catch (e) { /* 忽略 */ }
 var __entry = __req("index.js");
 try { globalThis.LoreWikiLookup = __entry; } catch (e) { /* 忽略 */ }
 })();

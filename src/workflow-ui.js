@@ -4,11 +4,11 @@ import { parseImport } from "./library.js";
 export function mountWorkflows({ root, getSettings, save, automatic, host, summarize, getLatest, getLibrary, importData, saveEntry, deleteEntry, restoreLibrary, invalidate, status, storage }) {
     const box = document.createElement("div");
     box.className = "lore-workflows";
-    box.innerHTML = `<details class="lore-auto"><summary>自动查询与副模型整理</summary>
+    box.innerHTML = `<details class="lore-auto"><summary>回复前自动查资料</summary>
       <label class="lore-check"><input type="checkbox" data-flow="enabled"> 生成回复前自动查询资料</label>
       <div class="lore-row"><label>每轮最多查询<input data-flow="maxQueries" type="number" min="1" max="3"></label><label>等待上限（毫秒）<input data-flow="budgetMs" type="number" min="1000" max="20000" step="1000"></label></div>
       <div class="lore-row"><label>扫描最近几条玩家消息<input data-flow="scanDepth" type="number" min="1" max="5"></label><label>注入预算（字符）<input data-flow="injectBudget" type="number" min="500" max="12000" step="500"></label></div>
-      <label>关注词（每行一个）<textarea data-flow="watchlist" rows="3" placeholder="博丽灵梦&#10;雾雨魔理沙"></textarea></label>
+      <label>关注词（每行一个）<textarea style="resize:none" data-flow="watchlist" rows="3" placeholder="明罗&#10;天野远子"></textarea></label>
       <label>自动返回字段<input data-flow="autoFields" placeholder="简介,作品,性格,能力,关系"></label>
       <label class="lore-check"><input data-flow="brackets" type="checkbox"> 也查询「括号中的未知名称」</label>
       <label class="lore-check"><input data-flow="autoSummary" type="checkbox"> 自动资料交给独立副模型整理（失败时用原文）</label>
@@ -16,7 +16,7 @@ export function mountWorkflows({ root, getSettings, save, automatic, host, summa
       <label>整理等待上限（毫秒）<input data-flow="summaryTimeout" type="number" min="1000" max="30000" step="1000"></label>
       <p class="lore-muted">独立副模型地址、模型与密钥在桥接服务中配置。自动查询识别已知名称、别名及关注词，同名歧义会跳过。</p>
       <div class="lore-actions"><button data-flow-action="saveAuto">保存自动设置</button><button data-flow-action="checkAuto">检查本轮自动资料</button></div>
-      <p data-flow="autoStatus" class="lore-muted"></p><label>上次自动注入预览<textarea readonly data-flow="autoPreview" rows="5"></textarea></label>
+      <p data-flow="autoStatus" class="lore-muted"></p><label>上次自动注入预览<textarea style="resize:none" readonly data-flow="autoPreview" rows="5"></textarea></label>
     </details>
     <details class="lore-library"><summary>资料导入与编辑</summary>
       <p class="lore-muted">支持 TXT、Markdown、本插件 JSON 和 SillyTavern／角色卡世界书。可先预览，再合并或替换。</p>
@@ -34,7 +34,7 @@ export function mountWorkflows({ root, getSettings, save, automatic, host, summa
         <div class="lore-actions"><button data-flow-action="saveEntry">保存条目</button><button data-flow-action="deleteEntry">删除条目</button></div>
       </div><p data-flow="libraryStatus" class="lore-muted"></p>
     </details>`;
-    root.querySelector(".lore-aliases").after(box);
+    root.querySelector(".lore-settings").append(box);
     const flow = name => box.querySelector('[data-flow="' + name + '"]');
     const action = name => box.querySelector('[data-flow-action="' + name + '"]');
     const config = getSettings();
@@ -58,7 +58,7 @@ export function mountWorkflows({ root, getSettings, save, automatic, host, summa
 
     const summaryBox = document.createElement("details"); summaryBox.className = "lore-summary";
     summaryBox.innerHTML = `<summary>整理查询结果</summary><label>整理重点（可选）<input data-summary="topic" placeholder="例如 角色性格与说话习惯"></label><div class="lore-actions"><button data-summary-action="run">用副模型整理本批资料</button><button data-summary-action="inject" disabled>将整理用于下一轮</button></div><p data-summary="status" class="lore-muted">原始查询资料始终保留，整理结果须通过原文引用核验。</p><pre data-summary="result" class="lore-preview"></pre>`;
-    root.querySelector('[data-control="results"]').before(summaryBox);
+    root.querySelector(".lore-settings").append(summaryBox);
     const s = name => summaryBox.querySelector('[data-summary="' + name + '"]');
     const sb = name => summaryBox.querySelector('[data-summary-action="' + name + '"]');
     let summary = null, summaryController = null;

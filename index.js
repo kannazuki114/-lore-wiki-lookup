@@ -10,7 +10,7 @@ import { createAutomatic, AUTOMATIC_DEFAULTS, validateAutomation } from "./src/a
 import { createLibrary } from "./src/library.js";
 import { generateSummary } from "./src/summary.js";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.5.0";
 export const fields = FIELDS;
 const storage = createStorage();
 let settings = { ...DEFAULTS, ...AUTOMATIC_DEFAULTS }, token = "", offline = [], host, learned = [], automatic;
@@ -104,6 +104,8 @@ export async function prepareAutomatic(...args) { await ready; return automatic.
 globalThis.LoreWikiLookup_Intercept = async (...args) => { try { return await prepareAutomatic(...args); } catch (e) { console.warn("[LoreWiki] 自动查询跳过", e.message); return ""; } };
 
 async function boot() {
+    // TauriTavern exposes its host ABI asynchronously, as in the reference plugin.
+    if (globalThis.__TAURITAVERN__?.ready) await globalThis.__TAURITAVERN__.ready;
     settings = validateAutomation({ ...DEFAULTS, ...await storage.get("settings") });
     settings.sources = [MOEGIRL, ...(settings.sources || []).filter(s => s.id !== "moegirl").map(validateSource)];
     settings.aliases = validateAliases(settings.aliases || []);
@@ -118,8 +120,15 @@ async function boot() {
     } });
     const mount = () => mountPanel({ run: query, settings, getSettings, discoverSource, saveSource, removeSource, save: configure, importData, exportData: getLibrary, getLibrary, saveEntry, deleteEntry, restoreLibrary, summarize: summarizeResult, automatic, storage, host });
     if (typeof document !== "undefined") {
-        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once: true });
-        else mount();
+        const mountWhenReady = () => {
+            mount();
+            if (!document.getElementById("lore-wiki-panel")) {
+                const observer = new MutationObserver(() => { mount(); if (document.getElementById("lore-wiki-panel")) observer.disconnect(); });
+                observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+            }
+        };
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountWhenReady, { once: true });
+        else mountWhenReady();
     }
     return { version: VERSION, ...host.status };
 }

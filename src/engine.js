@@ -1,6 +1,17 @@
 import { FIELDS, fieldId, normalize, parseQuery, selectFields, matchFilters, projectRecord } from "./fields.js";
 import { extractPage } from "./extract.js";
 import { resolveAlias, workMatch } from "./resolver.js";
+import { titleFromUrl } from "./sources.js";
+
+// Keep the Wiki's relevance order within each name-match tier.
+export function rankNames(rows, input) {
+    const key = normalize(input);
+    const score = row => Math.max(0, ...[row.title, ...(row.fields?.aliases || []).map(v => v.value)].map(value => {
+        const name = normalize(value).replace(/^(category|分类|分類):/, "");
+        return !key ? 0 : name === key ? 3 : name.startsWith(key) ? 2 : name.includes(key) ? 1 : 0;
+    }));
+    return [...rows].sort((a, b) => score(b) - score(a));
+}
 
 export function validateOffline(input) {
     if (input?.schemaVersion !== 1 || !Array.isArray(input.entries)) throw new Error("需要 schemaVersion: 1 和 entries 数组");
@@ -26,9 +37,26 @@ export function validateOffline(input) {
 
 export function createEngine({ provider, offline = [], parsePage = extractPage, aliases = [] }) {
     async function run(args = {}) {
-        const mode = args.mode || "search";
-        if (!["search", "page", "category", "categories", "subcategories"].includes(mode)) throw new Error("未知检索模式");
-        const query = parseQuery(args.query);
+        const fromUrl = /^https?:\/\//i.test(String(args.query || "").trim());
+        const mode = fromUrl ? "page" : args.mode || "search";
+        if (!["search", "series", "page", "category", "categories", "subcategories"].includes(mode)) throw new Error("未知检索模式");
+        const query = fromUrl ? { text: titleFromUrl(args.query, provider.source), filters: [] } : parseQuery(args.query);
+        if (mode === "series" || mode === "search" && /^(?:查字段|字段检索|字段)\s+/.test(String(args.query).trim())) {
+            if (!query.text) throw new Error("请输入作品或分类名称");
+            let categories = [], warning = "";
+            try { categories = rankNames((await provider.request("search-categories", { query: query.text, limit: 8 })).items || [], query.text); }
+            catch (error) { warning = "分类名称读取失败：" + error.message; }
+            const exact = categories.filter(c => normalize(c.title.replace(/^(Category|分类|分類):/i, "")) === normalize(query.text.replace(/^(Category|分类|分類):/i, "")));
+            const partial = categories.filter(c => normalize(c.title).includes(normalize(query.text)));
+            const hits = exact.length ? exact : partial;
+            if (hits.length > 1) return { mode, query, fields: selectFields(args.fields), results: [], rejected: [], choices: [], navigation: hits.map(c => ({ title: c.title, type: "category" })), warnings: warning ? [warning] : [], onlineState: "ok", scanned: hits.length, cursor: null, notice: "匹配到多个分类，请选择后查看成员。", aliasHints: [], matchMode: "category" };
+            const target = hits[0];
+            const filters = query.filters.map(f => f.field + (f.op === "eq" ? "=" : "~") + JSON.stringify(f.value)).join(" ");
+            const result = await run({ ...args, mode: target ? "category" : "search", query: [target ? target.title : query.text, filters].filter(Boolean).join(" ") });
+            return { ...result, matchMode: target ? "category" : "name", matchedCategory: target?.title,
+                warnings: [...(warning ? [warning] : []), ...result.warnings],
+                notice: (target ? "已匹配分类 " + target.title + "，按分类成员检索。" : "未匹配到分类，已退回名称搜索。") + result.notice };
+        }
         const originalText = query.text;
         const work = String(args.work || "").trim();
         const sourceId = provider.source?.id || "moegirl";
@@ -71,14 +99,14 @@ export function createEngine({ provider, offline = [], parsePage = extractPage, 
                 if (mode === "page") candidates.push({ title: query.text });
                 else {
                     // Search is only candidate discovery, never proof of a field match.
-                    const searchText = [...new Set([query.text, work, ...query.filters.map(f => f.value)].filter(Boolean))].join(" ");
+                    const searchText = query.text || [...new Set([work, ...query.filters.map(f => f.value)].filter(Boolean))].join(" ");
                     const response = await provider.request(mode === "category" ? "get-category-members" : "search", {
                         query: mode === "category" ? query.text : searchText, limit, ...(continuation ? { continueToken: continuation } : {})
                     });
                     if (response._warning) warnings.push(response._warning);
                     const rows = mode === "category" ? response.members : response.items;
                     if (!Array.isArray(rows)) throw new Error("Wiki 返回格式不匹配");
-                    candidates.push(...rows.filter(r => typeof r.title === "string").slice(0, limit));
+                    candidates.push(...rankNames(rows.filter(r => typeof r.title === "string"), mode === "category" ? "" : query.text).slice(0, limit));
                     nextOnline = response.pagination?.continueToken || null;
                     if (mode === "category" && !candidates.length) warnings.push("该分类本批没有直接页面；可展开子分类，或搜索分类名称确认名称。");
                 }
@@ -86,7 +114,18 @@ export function createEngine({ provider, offline = [], parsePage = extractPage, 
                     try {
                         const page = await provider.request("get-page", { query: candidate.title });
                         if (page.disambiguation) {
-                            choices.push(...(page.links || []).filter(l => l.title).slice(0, 30).map(l => ({ title: l.title, reason: "消歧义页面候选", sourceId })));
+                            let links = page.links || [], reason = "消歧义页面中的链接，请选择具体条目";
+                            if (!links.length) {
+                                try {
+                                    const response = await provider.request("get-links", { query: page.title || candidate.title, limit: 500 });
+                                    links = response.links || [];
+                                    if (response.pagination?.hasMore) warnings.push("消歧链接超过本批上限，请打开来源页面核对其余候选。");
+                                }
+                                catch { /* Some custom Wikis do not expose links; search remains a labelled fallback. */ }
+                            }
+                            if (!links.length) { links = (await provider.request("search", { query: candidate.title, limit: 8 })).items || []; reason = "同名搜索候选，请核对来源"; }
+                            const ranked = rankNames(rankNames(links.filter(l => l.title && l.title !== page.title), page.title || candidate.title), candidate.title);
+                            choices.push(...ranked.map(l => ({ title: l.title, reason, sourceId })));
                             warnings.push(candidate.title + " 是消歧义页面，请选择具体条目。");
                             continue;
                         }
@@ -109,7 +148,16 @@ export function createEngine({ provider, offline = [], parsePage = extractPage, 
                         const verdict = matchFilters(record, query.filters);
                         if (verdict.matches) results.push(projectRecord(record, selected));
                         else rejected.push({ title: record.title, ...verdict });
-                    } catch (e) { warnings.push(candidate.title + "：" + e.message); onlineState = "partial"; }
+                    } catch (e) {
+                        warnings.push(candidate.title + "：" + e.message); onlineState = "partial";
+                        if (mode === "page" && e.message.includes("页面不存在")) {
+                            try {
+                                let response = await provider.request("search", { query: candidate.title, limit: 5 });
+                                if (!response.items?.length && /[·・]/.test(candidate.title)) response = await provider.request("search", { query: candidate.title.split(/[·・]/)[0].slice(0, 3), limit: 5 });
+                                choices.push(...(response.items || []).filter(r => r.title !== candidate.title).map(r => ({ title: r.title, reason: "原名称不存在，可能相关的页面（请手动选择）", sourceId })));
+                            } catch { /* Keep the original failure visible if suggestions also fail. */ }
+                        }
+                    }
                 }
             } catch (e) { warnings.push(e.message + "；已检索离线补充资料"); onlineState = "unavailable"; }
         }
@@ -126,6 +174,7 @@ export function createEngine({ provider, offline = [], parsePage = extractPage, 
             choices.push(...localMatches.map(r => ({ title: r.title, entryId: r.id, work: (r.fields.work || []).map(v => v.value).join(" / "), reason: "本地资料中有多个同名／同别名条目，请选择" })));
             localMatches = [];
         }
+        localMatches = rankNames(localMatches, query.text);
         const localPage = localMatches.slice(localOffset, localOffset + limit);
         results.push(...localPage.map(r => projectRecord(r, selected)));
         const nextLocal = localOffset + localPage.length;
@@ -143,17 +192,22 @@ export function formatResult(result, budget = 6000) {
     for (const record of result.results) {
         const block = ["条目：" + record.title, "来源：" + record.source.site + " " + (record.source.url || record.source.note || "")];
         if (record.source.fetchedAt) block.push("读取时间：" + record.source.fetchedAt + "；缓存：" + record.source.cache);
+        const headLength = block.length;
         for (const [id, values] of Object.entries(record.fields)) {
             const label = FIELDS.find(f => f.id === id)?.label || id;
-            block.push(label + "：" + (values.length ? values.map(v => v.value + "（" + v.section + "）").join("\n") : "未找到明确资料"));
+            for (const value of values.length ? values : [{ value: "未找到明确资料", section: "" }]) {
+                const text = label + "：" + value.value + (value.section ? "（" + value.section + "）" : "");
+                if (lines.join("\n\n").length + block.join("\n").length + text.length + 120 <= budget) block.push(text);
+                else clipped = true;
+            }
         }
         const text = block.join("\n");
-        if (lines.join("\n\n").length + text.length + 100 > budget) { clipped = true; continue; }
+        if (block.length === headLength || lines.join("\n\n").length + text.length + 100 > budget) { clipped = true; continue; }
         lines.push(text);
         included++;
     }
     if (!result.results.length) lines.push("没有匹配条目；不代表该事实不存在。");
     if (result.results.length && !included) throw new Error("所选字段内容超出注入预算，请减少字段后重新提取。");
-    if (clipped) lines.push("部分条目超出注入预算，未加入；请减少所选字段后重新提取。");
+    if (clipped) lines.push("部分资料超出注入预算，已按完整段落省略；以上不是完整页面，请结合原文。");
     return lines.join("\n\n").slice(0, budget);
 }

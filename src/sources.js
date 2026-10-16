@@ -1,4 +1,4 @@
-export const MOEGIRL = { id: "moegirl", name: "萌娘百科", url: "https://zh.moegirl.org.cn/", apiUrl: "https://mzh.moegirl.org.cn/api.php", articlePath: "https://zh.moegirl.org.cn/$1", transport: "bridge" };
+export const MOEGIRL = { id: "moegirl", name: "萌娘百科", url: "https://zh.moegirl.org.cn/", apiUrl: "https://zh.moegirl.org.cn/api.php", articlePath: "https://zh.moegirl.org.cn/$1", transport: "direct" };
 
 export function wikiUrl(value) {
     let url;
@@ -27,6 +27,21 @@ export function validateSource(source) {
 }
 export function pageUrl(source, title) {
     return wikiUrl((source?.articlePath || MOEGIRL.articlePath).replace("$1", encodeURIComponent(title))).href;
+}
+export function titleFromUrl(input, source = MOEGIRL) {
+    const url = wikiUrl(input);
+    const allowed = new Set([wikiUrl(source.url).hostname, wikiUrl(source.apiUrl).hostname]);
+    if (source.id === "moegirl") allowed.add("mzh.moegirl.org.cn");
+    if (!allowed.has(url.hostname)) throw new Error("页面网址与当前 Wiki 不同，请先切换或添加该来源。");
+    const template = new URL(source.articlePath.replace("$1", "LORE_TITLE"));
+    let title = url.searchParams.get("title");
+    if (!title) for (const [key, value] of template.searchParams) if (value === "LORE_TITLE") title = url.searchParams.get(key);
+    if (!title) {
+        const [prefix, suffix] = template.pathname.split("LORE_TITLE");
+        if (suffix !== undefined && url.pathname.startsWith(prefix) && url.pathname.endsWith(suffix)) title = decodeURIComponent(url.pathname.slice(prefix.length, suffix ? -suffix.length : undefined));
+    }
+    if (!title || /^(?:api|index)\.php$/i.test(title)) throw new Error("请粘贴具体条目的网址，或直接输入页面标题。");
+    return title.replace(/_/g, " ").trim();
 }
 export function sourceFromInfo(apiUrl, general, transport = "direct", name = "") {
     const base = wikiUrl(new URL(general.server || general.base || apiUrl, apiUrl).href);

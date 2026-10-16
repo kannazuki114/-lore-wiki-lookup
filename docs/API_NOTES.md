@@ -1,5 +1,36 @@
 # 萌娘百科 API 与参考项目核对
 
+## v0.5 样本驱动的补充
+
+- 新增 `get-links`：`query&prop=links&titles=...&redirects=1&plnamespace=0&pllimit=500`，真实萌百匿名测试可用。先按正文规范标题取消歧链接，再按原输入／重定向标题排序；不把泛搜索结果标成页面列举的同名人物。分页上限会提示。
+- 同名候选不再仅保留前 30 项，界面前 8 项之后折叠；原输入“萨拉”最终可选择真实页面“萨拉(东方Project)”。
+- 不存在名称保持未命中，返回明确标注的建议；含中点译名还可用前三字前缀找相关条目，用户确认前不读取为对应人物。
+- 新增 `content` 字段仅表示实际取得的未归类正文，不改变已命名章节的结构化属性；它不是不受 TextExtracts 限制的网页全文。
+- 当前来源页面 URL 可转为标题，外站网址拒绝并提示先切换来源；不将任意粘贴 URL 当作 API 请求目标。
+- 样本与边界详见 [SAMPLE_TESTS.md](SAMPLE_TESTS.md)。
+
+## v0.4 默认公开读取（取代旧版默认认证路径）
+
+此前把 `list=search` 的匿名拒绝误推为全部搜索都需要认证，造成默认无法使用。2026-10-16 重新核对实际接口：
+
+| 操作 | 默认萌百请求 | 实际结果 |
+|---|---|---|
+| 名称／全文候选 | `action=query&generator=search&gsrsearch=灵梦&gsrnamespace=0&prop=info` | 匿名成功，按 `index` 恢复站点顺序；`gsroffset` 翻页 |
+| 分类名称 | 上述请求限定 `gsrnamespace=14` | 匿名成功 |
+| 正文 | `action=query&prop=extracts\|info\|pageprops&titles=博丽灵梦&redirects=1&exlimit=1&inprop=url` | 匿名成功，HTML 摘要包含章节与部分标注段落 |
+| 所属分类 | `action=query&prop=categories&titles=博丽灵梦&cllimit=500&clprop=hidden&redirects=1` | 匿名成功 |
+| 分类成员 | `generator=search&gsrsearch=incategory:"东方Project"&gsrnamespace=0` | 匿名成功；来自搜索索引，并非 categorymembers 实时枚举 |
+| 子分类 | 分类成员请求限定 `gsrnamespace=14` | 匿名成功 |
+| 旧 `list=search`、`action=parse`、categorymembers | 匿名请求 | 仍返回 Unauthorized；不作为默认萌百路径 |
+
+统一使用 `https://zh.moegirl.org.cn/api.php`、`formatversion=2` 和 `origin=*`，浏览器不发送 Cookie。新鲜浏览器配置实测 CORS 请求成功。没有修改站点权限或使用账号。
+
+TextExtracts 官方说明 HTML 可能不平衡，省略图片及部分内容；使用 DOMParser 容错，仅提取明确字段标签和命名章节。页面 `lastrevid` 作为修订号。消歧页没有显式链接时展示同名搜索候选并标注需要核对，不能视为完整消歧列表。
+
+自定义 Wiki 保留标准 `list=search` / `parse` 路径，受限或不支持时尝试公开生成器／摘要接口。分页校验同时识别标准和生成器键，不能注入其他 API 参数；生成器续页固定使用原接口。字段检索对应原查卡器系列检索，区别于性格、能力等资料属性提取。
+
+主要官方资料：[Query generators](https://www.mediawiki.org/wiki/API:Query#Generators)、[TextExtracts](https://www.mediawiki.org/wiki/Extension:TextExtracts#API)、[Search](https://www.mediawiki.org/wiki/API:Search)。以下 v0.1–v0.3 内容为历史记录，认证不再是默认萌百前置条件。
+
 ## v0.3 酒馆生成与副模型接入
 
 官方参考：<https://docs.sillytavern.app/for-contributors/writing-extensions/>。

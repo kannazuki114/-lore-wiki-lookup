@@ -1,7 +1,7 @@
 // Anonymous reads only. Pin a validated DNS answer; do not forward cookies or credentials.
 import https from 'node:https';
 import { lookup } from 'node:dns/promises';
-import { apiParameters, normalizeResponse } from '../src/mediawiki.js';
+import { readMediaWiki } from '../src/mediawiki.js';
 
 export function publicIPv4(address) {
     const p = address.split('.').map(Number);
@@ -26,7 +26,9 @@ export async function publicRead(url, resolve = lookup) {
     });
 }
 export async function runPublicWiki(request, read = publicRead) {
-    const url = new URL(request.source.apiUrl);
-    url.search = new URLSearchParams(apiParameters(request.operation, request)).toString();
-    return normalizeResponse(request.operation, await read(url), request);
+    return readMediaWiki(request.operation, request, params => {
+        const url = new URL(request.source.apiUrl);
+        url.search = new URLSearchParams(params).toString();
+        return read(url);
+    }, new URL(request.source.apiUrl).hostname.endsWith('.moegirl.org.cn'));
 }

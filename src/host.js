@@ -56,7 +56,7 @@ export function createHost(run) {
     };
     const parameters = { type: "object", properties: {
         query: { type: "string", description: "名称或条件，例如 原神 阵营~西风骑士团；=精确，~包含；带空格的值用双引号" },
-        mode: { type: "string", enum: ["search", "page", "category", "categories", "subcategories"], description: "search候选检索；page指定页面；category分类页面；categories搜索分类；subcategories子分类" },
+        mode: { type: "string", enum: ["search", "series", "page", "category", "categories", "subcategories"], description: "search名称检索；series字段/分类成员检索；page指定页面；category分类页面；categories搜索分类；subcategories子分类" },
         work: { type: "string", description: "作品范围，省略时使用当前聊天绑定；空串表示不限定" },
         resolveExact: { type: "boolean", description: "用户已从消歧候选中明确选定完整标题时设为 true" },
         entryId: { type: "string", description: "本地同名候选返回的条目 ID，用户选定后原样传回" },

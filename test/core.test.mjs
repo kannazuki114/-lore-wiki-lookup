@@ -76,7 +76,7 @@ test('缓存命中、过期回退和清缓存不删除离线包', async () => {
     const storage = createStorage(null);
     await storage.set('offline', fixture);
     let calls = 0;
-    const fetchFn = async () => { calls++; return { ok: true, json: async () => ({ items: [], operation: 'search' }) }; };
+    const fetchFn = async () => { calls++; return { ok: true, json: async () => ({ batchcomplete: true, query: { pages: [] } }) }; };
     const provider = createProvider({ storage, token: 't', fetchFn });
     assert.equal((await provider.request('search', { query: 'x' }))._cache, 'network');
     assert.equal((await provider.request('search', { query: 'x' }))._cache, 'fresh');

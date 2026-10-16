@@ -33,6 +33,8 @@ await page.addInitScript(() => {
 try {
     await page.goto(base);
     await page.evaluate(() => window.LoreWikiLookup.ready);
+    await page.locator('.lore-settings > summary').click();
+    await page.locator('.lore-field-options > summary').click();
     const fixture = JSON.parse(await fs.readFile(path.join(root, 'data/example.json'), 'utf8'));
     await page.locator('.lore-connection summary').click();
     await page.locator('[data-control=source]').selectOption('offline');
@@ -44,6 +46,7 @@ try {
     await page.locator('.lore-library summary').click();
     await page.locator('.lore-connection summary').click();
     await page.locator('[data-control=query]').fill('作品=星港纪事 阵营~调查队');
+    await page.locator('[data-control=fields] input[value=plot]').check();
     await page.locator('[data-action=search]').click();
     await page.locator('.lore-result h3').filter({ hasText: '林澈' }).waitFor();
     assert.equal(await page.locator('.lore-result').count(), 1);
@@ -61,6 +64,8 @@ try {
     checks.push('390px 窄屏布局没有横向溢出');
     await page.reload();
     await page.evaluate(() => window.LoreWikiLookup.ready);
+    await page.locator('.lore-settings > summary').click();
+    await page.locator('.lore-field-options > summary').click();
     const persisted = await page.evaluate(() => window.LoreWikiLookup.query({ mode: 'page', query: '小林', fields: '性格' }));
     assert.equal(persisted.results[0].title, '林澈');
     checks.push('真实 IndexedDB 刷新持久化、别名查页');
@@ -72,7 +77,8 @@ try {
     assert.equal(extraction.fields.work[0].value, '星港纪事');
     assert.deepEqual(extraction.fields.aliases.map(v => v.value), ['小林', '记录员']);
     assert.equal(extraction.fields.personality.length, 2);
-    assert.ok(!JSON.stringify(extraction.fields).includes('不是性格'));
+    assert.ok(!JSON.stringify({ personality: extraction.fields.personality, history: extraction.fields.history }).includes('不是性格'));
+    assert.ok(extraction.fields.content.some(v => v.value.includes('不是性格'))); // Unclassified original text is retained only as original text.
     assert.equal(extraction.fields.categories.length, 1);
     assert.equal(extraction.fields.plot, undefined);
     assert.ok(extraction.fields.personality[0].url.includes('#'));
@@ -88,14 +94,12 @@ try {
     assert.equal(template.fields.history[0].value, '曾参加调查。');
     checks.push('MoeSkin 模板、跨行关系信息栏、PortableInfobox 与定义列表');
 
-    await page.route('http://127.0.0.1:39765/query', async route => {
-        const body = route.request().postDataJSON();
-        const responses = {
-            search: { items: [{ title: '测试角色' }], pagination: { continueToken: null } },
-            'get-page': { title: '测试角色', format: 'html', revid: 1, content: '<div class="mw-parser-output"><p>测试引言</p><h2>性格</h2><p>谨慎</p></div>' },
-            'get-categories': { pageTitle: '测试角色', categories: [{ title: 'Category:测试', hidden: false }] }
-        };
-        await route.fulfill({ json: responses[body.operation], headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
+    await page.route('https://zh.moegirl.org.cn/api.php?*', async route => {
+        const params = new URL(route.request().url()).searchParams;
+        const data = params.get('generator') === 'search' ? { query: { pages: [{ title: '测试角色', index: 1 }] } }
+            : params.get('prop') === 'categories' ? { query: { pages: [{ title: '测试角色', categories: [{ title: 'Category:测试' }] }] } }
+            : { query: { pages: [{ title: '测试角色', lastrevid: 1, extract: '<p>测试引言</p><h2>性格</h2><p>谨慎</p>' }] } };
+        await route.fulfill({ json: data, headers: { 'Access-Control-Allow-Origin': '*' } });
     });
     const online = await page.evaluate(async () => {
         await window.LoreWikiLookup.configure({ mode: 'bridge', bridgeUrl: 'http://127.0.0.1:39765' }, 'test-pair-token');
@@ -103,7 +107,7 @@ try {
     });
     assert.equal(online.onlineState, 'ok');
     assert.equal(online.results[0].fields.personality[0].value, '谨慎');
-    checks.push('真实浏览器：桥接协议模拟响应到字段结果完整链路');
+    checks.push('真实浏览器：萌百直连接口模拟响应到字段结果完整链路');
 
     const apiCalls = [];
     await page.route('https://custom.example/**', async route => {
@@ -260,6 +264,24 @@ try {
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: path.join(out, 'panel-v03-mobile.png'), fullPage: true });
+    const delayed = await browser.newPage();
+    await delayed.addInitScript(() => {
+        window.__TAURITAVERN__ = { ready: new Promise(resolve => { window.releaseTauriHost = () => {
+            window.registeredTools = [];
+            window.SillyTavern = { getContext: () => ({ registerFunctionTool: tool => window.registeredTools.push(tool) }) };
+            resolve();
+        }; }) };
+    });
+    await delayed.goto(base);
+    assert.equal(await delayed.locator('#lore-wiki-panel').count(), 0);
+    await delayed.evaluate(() => { document.getElementById('lore-demo').remove(); window.releaseTauriHost(); });
+    await delayed.evaluate(() => window.LoreWikiLookup.ready);
+    assert.equal(await delayed.evaluate(() => window.registeredTools.length), 1);
+    await delayed.evaluate(() => { const target = document.createElement('div'); target.id = 'lore-demo'; document.body.append(target); });
+    await delayed.locator('#lore-wiki-panel').waitFor();
+    assert.equal(await delayed.locator('#lore-wiki-panel').count(), 1);
+    await delayed.close();
+    checks.push('TauriTavern ABI 延迟就绪后注册工具，设置 DOM 晚出现时补挂面板');
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(out, 'browser-report.json'), JSON.stringify({ at: new Date().toISOString(), checks, errors, liveAuthenticatedWiki: false }, null, 2));
     console.log(JSON.stringify({ passed: checks.length, checks, errors }, null, 2));
